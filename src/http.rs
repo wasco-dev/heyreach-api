@@ -67,10 +67,7 @@ fn send_http_request(
     let headers = Fields::new();
 
     headers
-        .append(
-            "content-type",
-            b"application/json; charset=utf-8",
-        )
+        .append("content-type", b"application/json; charset=utf-8")
         .map_err(|_| {
             build_api_error(
                 ApiErrorCode::Unknown,
