@@ -68,8 +68,8 @@ fn send_http_request(
 
     headers
         .append(
-            &"content-type".to_string(),
-            &b"application/json; charset=utf-8".to_vec(),
+            "content-type",
+            b"application/json; charset=utf-8",
         )
         .map_err(|_| {
             build_api_error(
@@ -79,7 +79,7 @@ fn send_http_request(
         })?;
 
     headers
-        .append(&"x-api-key".to_string(), api_key.as_bytes())
+        .append("x-api-key", api_key.as_bytes())
         .map_err(|_| build_api_error(ApiErrorCode::Unauthorized, "Failed to set API key header"))?;
 
     let outgoing_request = OutgoingRequest::new(headers);
