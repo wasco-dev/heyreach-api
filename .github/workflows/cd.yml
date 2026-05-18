@@ -1,67 +1,19 @@
 on:
+  workflow_dispatch:
   push:
-    branches:
-      - "master"
+    branches: ["main"]
     paths:
-      - "**/Cargo.toml"
+      - "**/*.toml"
+      - "**/*.lock"
       - "**.rs"
-      - "**.wasm"
       - "**.wit"
 
-env:
-  CARGO_TERM_COLOR: always
-  REGISTRY: ghcr.io
-
 jobs:
-  publish:
-    runs-on: ubuntu-latest
-
+  cd:
+    uses: wasco-dev/workflows/.github/workflows/cd.yml@main
     permissions:
       contents: read
       packages: write
       attestations: write
       id-token: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          target: wasm32-wasip2
-          cache-directories: "**/target"
-          cache-all-crates: "true"
-
-      - name: Setup wash
-        uses: wasmCloud/setup-wash-action@main
-        with:
-          wash-version: wash-v2.0.0-rc.8
-
-      - name: Fetch WIT dependencies
-        run: echo "namespace_registries.wasco-dev = \"wasco.dev\"" | WKG_CONFIG_FILE="/dev/stdin" wash wit fetch
-
-      - name: Build project(s)
-        run: |
-          shopt -s globstar
-
-          for file in **/Cargo.toml; do
-            cargo build --release --target wasm32-wasip2 --manifest-path $file
-            dirname=$(dirname "$file")
-            mv $dirname/target/wasm32-wasip2/release/*.wasm $dirname 2> /dev/null || exit 0
-          done
-
-      - name: Log in to ghcr
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push to ghcr
-        run: |
-          shopt -s globstar
-
-          for file in **/Cargo.toml; do
-            directory=$(dirname "$file")
-            wash oci push ${{ env.REGISTRY }}/$(sed -n "s/package wasco-dev:\\([a-z-]*\\)@\\([0-9]\.[0-9]\.[0-9]\\);/wasco-dev\/\1:\2/p" $directory/wit/world.wit) $directory/*.wasm
-          done
+    secrets: inherit
