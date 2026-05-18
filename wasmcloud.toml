@@ -1,7 +1,0 @@
-name = "heyreach-api"
-version = "0.1.0"
-language = "rust"
-type = "component"
-
-[component]
-wasm_target = "wasm32-wasip2"
