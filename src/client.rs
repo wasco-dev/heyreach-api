@@ -678,3 +678,483 @@ pub fn webhooks_delete(api_key: &str, webhook_id: u64) -> Result<(), ApiError> {
         None::<&()>,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // -------- campaign_status_from_string --------
+
+    #[test]
+    fn test_campaign_status_from_string_valid_statuses() {
+        // Arrange & Act & Assert
+        assert!(matches!(campaign_status_from_string("draft"), CampaignStatus::Draft));
+        assert!(matches!(campaign_status_from_string("active"), CampaignStatus::Active));
+        assert!(matches!(campaign_status_from_string("paused"), CampaignStatus::Paused));
+        assert!(matches!(campaign_status_from_string("finished"), CampaignStatus::Finished));
+        assert!(matches!(campaign_status_from_string("canceled"), CampaignStatus::Canceled));
+    }
+
+    #[test]
+    fn test_campaign_status_from_string_unknown() {
+        // Arrange & Act & Assert
+        assert!(matches!(campaign_status_from_string("invalid"), CampaignStatus::Unknown));
+        assert!(matches!(campaign_status_from_string(""), CampaignStatus::Unknown));
+    }
+
+    #[test]
+    fn test_campaign_status_from_string_case_insensitive() {
+        // Arrange & Act & Assert
+        assert!(matches!(campaign_status_from_string("DRAFT"), CampaignStatus::Draft));
+        assert!(matches!(campaign_status_from_string("Active"), CampaignStatus::Active));
+        assert!(matches!(campaign_status_from_string("PAUSED"), CampaignStatus::Paused));
+        assert!(matches!(campaign_status_from_string("Finished"), CampaignStatus::Finished));
+        assert!(matches!(campaign_status_from_string("CANCELED"), CampaignStatus::Canceled));
+    }
+
+    // -------- campaign_status_to_string --------
+
+    #[test]
+    fn test_campaign_status_to_string_all_variants() {
+        // Arrange & Act & Assert
+        assert_eq!(campaign_status_to_string(&CampaignStatus::Draft), "draft");
+        assert_eq!(campaign_status_to_string(&CampaignStatus::Active), "active");
+        assert_eq!(campaign_status_to_string(&CampaignStatus::Paused), "paused");
+        assert_eq!(campaign_status_to_string(&CampaignStatus::Finished), "finished");
+        assert_eq!(campaign_status_to_string(&CampaignStatus::Canceled), "canceled");
+        assert_eq!(campaign_status_to_string(&CampaignStatus::Unknown), "unknown");
+    }
+
+    #[test]
+    fn test_campaign_status_round_trip() {
+        // Arrange
+        let statuses = vec![
+            CampaignStatus::Draft,
+            CampaignStatus::Active,
+            CampaignStatus::Paused,
+            CampaignStatus::Finished,
+            CampaignStatus::Canceled,
+        ];
+
+        for status in &statuses {
+            // Act
+            let as_string = campaign_status_to_string(status);
+            let back = campaign_status_from_string(&as_string);
+
+            // Assert
+            assert!(matches!(
+                (&status, &back),
+                (CampaignStatus::Draft, CampaignStatus::Draft)
+                    | (CampaignStatus::Active, CampaignStatus::Active)
+                    | (CampaignStatus::Paused, CampaignStatus::Paused)
+                    | (CampaignStatus::Finished, CampaignStatus::Finished)
+                    | (CampaignStatus::Canceled, CampaignStatus::Canceled)
+            ));
+        }
+    }
+
+    // -------- list_type_from_string --------
+
+    #[test]
+    fn test_list_type_from_string_valid_types() {
+        // Arrange & Act & Assert
+        assert!(matches!(list_type_from_string("leads"), ListType::Leads));
+        assert!(matches!(list_type_from_string("companies"), ListType::Companies));
+    }
+
+    #[test]
+    fn test_list_type_from_string_unknown() {
+        // Arrange & Act & Assert
+        assert!(matches!(list_type_from_string("invalid"), ListType::Unknown));
+        assert!(matches!(list_type_from_string(""), ListType::Unknown));
+    }
+
+    #[test]
+    fn test_list_type_from_string_case_insensitive() {
+        // Arrange & Act & Assert
+        assert!(matches!(list_type_from_string("LEADS"), ListType::Leads));
+        assert!(matches!(list_type_from_string("Companies"), ListType::Companies));
+    }
+
+    // -------- webhook_event_type_from_string --------
+
+    #[test]
+    fn test_webhook_event_type_from_string_pascal_case() {
+        // Arrange & Act & Assert
+        assert!(matches!(
+            webhook_event_type_from_string("ConnectionRequestSent"),
+            WebhookEventType::ConnectionRequestSent
+        ));
+        assert!(matches!(
+            webhook_event_type_from_string("ConnectionAccepted"),
+            WebhookEventType::ConnectionAccepted
+        ));
+        assert!(matches!(
+            webhook_event_type_from_string("MessageSent"),
+            WebhookEventType::MessageSent
+        ));
+        assert!(matches!(
+            webhook_event_type_from_string("MessageReplied"),
+            WebhookEventType::MessageReplied
+        ));
+    }
+
+    #[test]
+    fn test_webhook_event_type_from_string_snake_case() {
+        // Arrange & Act & Assert
+        assert!(matches!(
+            webhook_event_type_from_string("connection_request_sent"),
+            WebhookEventType::ConnectionRequestSent
+        ));
+        assert!(matches!(
+            webhook_event_type_from_string("connection_accepted"),
+            WebhookEventType::ConnectionAccepted
+        ));
+        assert!(matches!(
+            webhook_event_type_from_string("message_sent"),
+            WebhookEventType::MessageSent
+        ));
+        assert!(matches!(
+            webhook_event_type_from_string("message_replied"),
+            WebhookEventType::MessageReplied
+        ));
+    }
+
+    #[test]
+    fn test_webhook_event_type_from_string_kebab_case() {
+        // Arrange & Act & Assert
+        assert!(matches!(
+            webhook_event_type_from_string("connection-request-sent"),
+            WebhookEventType::ConnectionRequestSent
+        ));
+        assert!(matches!(
+            webhook_event_type_from_string("connection-accepted"),
+            WebhookEventType::ConnectionAccepted
+        ));
+        assert!(matches!(
+            webhook_event_type_from_string("message-sent"),
+            WebhookEventType::MessageSent
+        ));
+        assert!(matches!(
+            webhook_event_type_from_string("message-replied"),
+            WebhookEventType::MessageReplied
+        ));
+    }
+
+    #[test]
+    fn test_webhook_event_type_from_string_unknown() {
+        // Arrange & Act & Assert
+        assert!(matches!(
+            webhook_event_type_from_string("invalid"),
+            WebhookEventType::Unknown
+        ));
+        assert!(matches!(
+            webhook_event_type_from_string(""),
+            WebhookEventType::Unknown
+        ));
+    }
+
+    // -------- webhook_event_type_to_string --------
+
+    #[test]
+    fn test_webhook_event_type_to_string_all_variants() {
+        // Arrange & Act & Assert
+        assert_eq!(
+            webhook_event_type_to_string(&WebhookEventType::ConnectionRequestSent),
+            "ConnectionRequestSent"
+        );
+        assert_eq!(
+            webhook_event_type_to_string(&WebhookEventType::ConnectionAccepted),
+            "ConnectionAccepted"
+        );
+        assert_eq!(
+            webhook_event_type_to_string(&WebhookEventType::MessageSent),
+            "MessageSent"
+        );
+        assert_eq!(
+            webhook_event_type_to_string(&WebhookEventType::MessageReplied),
+            "MessageReplied"
+        );
+        assert_eq!(
+            webhook_event_type_to_string(&WebhookEventType::Unknown),
+            "Unknown"
+        );
+    }
+
+    // -------- lead_from_dto / lead_to_dto --------
+
+    #[test]
+    fn test_lead_round_trip_all_fields() {
+        // Arrange
+        let dto = LeadDto {
+            first_name: "Jane".to_string(),
+            last_name: "Doe".to_string(),
+            profile_url: "https://linkedin.com/in/janedoe".to_string(),
+            location: Some("London".to_string()),
+            summary: Some("Engineer".to_string()),
+            company_name: Some("Acme".to_string()),
+            position: Some("CTO".to_string()),
+            about: Some("Builds things".to_string()),
+            email_address: Some("jane@example.com".to_string()),
+            custom_user_fields: vec![
+                CustomUserFieldDto {
+                    name: "source".to_string(),
+                    value: "linkedin".to_string(),
+                },
+                CustomUserFieldDto {
+                    name: "priority".to_string(),
+                    value: "high".to_string(),
+                },
+            ],
+        };
+
+        // Act
+        let lead = lead_from_dto(dto);
+        let round_tripped = lead_to_dto(lead);
+
+        // Assert
+        assert_eq!(round_tripped.first_name, "Jane");
+        assert_eq!(round_tripped.last_name, "Doe");
+        assert_eq!(round_tripped.profile_url, "https://linkedin.com/in/janedoe");
+        assert_eq!(round_tripped.location, Some("London".to_string()));
+        assert_eq!(round_tripped.summary, Some("Engineer".to_string()));
+        assert_eq!(round_tripped.company_name, Some("Acme".to_string()));
+        assert_eq!(round_tripped.position, Some("CTO".to_string()));
+        assert_eq!(round_tripped.about, Some("Builds things".to_string()));
+        assert_eq!(round_tripped.email_address, Some("jane@example.com".to_string()));
+        assert_eq!(round_tripped.custom_user_fields.len(), 2);
+        assert_eq!(round_tripped.custom_user_fields[0].name, "source");
+        assert_eq!(round_tripped.custom_user_fields[0].value, "linkedin");
+        assert_eq!(round_tripped.custom_user_fields[1].name, "priority");
+        assert_eq!(round_tripped.custom_user_fields[1].value, "high");
+    }
+
+    #[test]
+    fn test_lead_from_dto_optional_fields_none() {
+        // Arrange
+        let dto = LeadDto {
+            first_name: "John".to_string(),
+            last_name: "Smith".to_string(),
+            profile_url: "https://linkedin.com/in/johnsmith".to_string(),
+            location: None,
+            summary: None,
+            company_name: None,
+            position: None,
+            about: None,
+            email_address: None,
+            custom_user_fields: vec![],
+        };
+
+        // Act
+        let lead = lead_from_dto(dto);
+
+        // Assert
+        assert_eq!(lead.first_name, "John");
+        assert_eq!(lead.last_name, "Smith");
+        assert_eq!(lead.profile_url, "https://linkedin.com/in/johnsmith");
+        assert!(lead.location.is_none());
+        assert!(lead.summary.is_none());
+        assert!(lead.company_name.is_none());
+        assert!(lead.position.is_none());
+        assert!(lead.about.is_none());
+        assert!(lead.email_address.is_none());
+        assert!(lead.custom_user_fields.is_empty());
+    }
+
+    // -------- progress_stats_from_dto --------
+
+    #[test]
+    fn test_progress_stats_from_dto() {
+        // Arrange
+        let dto = ProgressStatsDto {
+            total_users: 100,
+            total_users_in_progress: -5,
+            total_users_pending: 20,
+            total_users_finished: 50,
+            total_users_failed: 10,
+            total_users_manually_stopped: 8,
+            total_users_excluded: 7,
+        };
+
+        // Act
+        let stats = progress_stats_from_dto(dto);
+
+        // Assert
+        assert_eq!(stats.total_users, 100);
+        assert_eq!(stats.total_users_in_progress, -5);
+        assert_eq!(stats.total_users_pending, 20);
+        assert_eq!(stats.total_users_finished, 50);
+        assert_eq!(stats.total_users_failed, 10);
+        assert_eq!(stats.total_users_manually_stopped, 8);
+        assert_eq!(stats.total_users_excluded, 7);
+    }
+
+    // -------- list_summary_from_dto --------
+
+    #[test]
+    fn test_list_summary_from_dto() {
+        // Arrange
+        let dto = ListSummaryDto {
+            id: 42,
+            name: "My List".to_string(),
+            total_items_count: 150,
+            list_type: "leads".to_string(),
+            creation_time: "2024-01-15T10:00:00Z".to_string(),
+            campaign_ids: vec![1, 2, 3],
+        };
+
+        // Act
+        let summary = list_summary_from_dto(dto);
+
+        // Assert
+        assert_eq!(summary.id, 42);
+        assert_eq!(summary.name, "My List");
+        assert_eq!(summary.total_items_count, 150);
+        assert!(matches!(summary.list_type, ListType::Leads));
+        assert_eq!(summary.creation_time, "2024-01-15T10:00:00Z");
+        assert_eq!(summary.campaign_ids, vec![1, 2, 3]);
+    }
+
+    // -------- webhook_from_dto --------
+
+    #[test]
+    fn test_webhook_from_dto() {
+        // Arrange
+        let dto = WebhookDto {
+            id: 99,
+            webhook_name: "My Webhook".to_string(),
+            webhook_url: "https://example.com/hook".to_string(),
+            event_type: "ConnectionRequestSent".to_string(),
+            campaign_ids: vec![10, 20],
+            is_active: true,
+        };
+
+        // Act
+        let webhook = webhook_from_dto(dto);
+
+        // Assert
+        assert_eq!(webhook.id, 99);
+        assert_eq!(webhook.webhook_name, "My Webhook");
+        assert_eq!(webhook.webhook_url, "https://example.com/hook");
+        assert!(matches!(webhook.event_type, WebhookEventType::ConnectionRequestSent));
+        assert_eq!(webhook.campaign_ids, vec![10, 20]);
+        assert!(webhook.is_active);
+    }
+
+    #[test]
+    fn test_webhook_from_dto_unknown_event_type() {
+        // Arrange
+        let dto = WebhookDto {
+            id: 1,
+            webhook_name: "Hook".to_string(),
+            webhook_url: "https://example.com".to_string(),
+            event_type: "SomeNewEvent".to_string(),
+            campaign_ids: vec![],
+            is_active: false,
+        };
+
+        // Act
+        let webhook = webhook_from_dto(dto);
+
+        // Assert
+        assert!(matches!(webhook.event_type, WebhookEventType::Unknown));
+        assert!(!webhook.is_active);
+    }
+
+    // -------- campaign_summary_from_dto --------
+
+    #[test]
+    fn test_campaign_summary_from_dto_with_progress_stats() {
+        // Arrange
+        let stats_dto = ProgressStatsDto {
+            total_users: 50,
+            total_users_in_progress: 10,
+            total_users_pending: 15,
+            total_users_finished: 20,
+            total_users_failed: 3,
+            total_users_manually_stopped: 1,
+            total_users_excluded: 1,
+        };
+        let dto = CampaignSummaryDto {
+            id: 7,
+            name: "Test Campaign".to_string(),
+            creation_time: "2024-06-01T12:00:00Z".to_string(),
+            linkedin_user_list_name: Some("Prospects".to_string()),
+            linkedin_user_list_id: Some(123),
+            campaign_account_ids: vec![1, 2],
+            status: "active".to_string(),
+            progress_stats: Some(stats_dto),
+            exclude_in_other_campaigns: true,
+            exclude_has_other_acc_conversations: false,
+            exclude_contacted_from_sender_in_other_campaign: true,
+            exclude_list_id: Some(456),
+            organization_unit_id: Some(789),
+            exclude_already_messaged_global: Some(true),
+            exclude_already_messaged_campaign_accounts: None,
+            exclude_first_connection_campaign_accounts: Some(false),
+            exclude_first_connection_global: None,
+            exclude_no_profile_picture: Some(true),
+        };
+
+        // Act
+        let summary = campaign_summary_from_dto(dto);
+
+        // Assert
+        assert_eq!(summary.id, 7);
+        assert_eq!(summary.name, "Test Campaign");
+        assert_eq!(summary.creation_time, "2024-06-01T12:00:00Z");
+        assert!(matches!(summary.status, CampaignStatus::Active));
+        assert_eq!(summary.linkedin_user_list_name, Some("Prospects".to_string()));
+        assert_eq!(summary.linkedin_user_list_id, Some(123));
+        assert_eq!(summary.campaign_account_ids, vec![1, 2]);
+        assert!(summary.progress_stats.is_some());
+        let stats = summary.progress_stats.unwrap();
+        assert_eq!(stats.total_users, 50);
+        assert_eq!(stats.total_users_in_progress, 10);
+        assert!(summary.exclude_in_other_campaigns);
+        assert!(!summary.exclude_has_other_acc_conversations);
+        assert!(summary.exclude_contacted_from_sender_in_other_campaign);
+        assert_eq!(summary.exclude_list_id, Some(456));
+        assert_eq!(summary.organization_unit_id, Some(789));
+        assert_eq!(summary.exclude_already_messaged_global, Some(true));
+        assert!(summary.exclude_already_messaged_campaign_accounts.is_none());
+        assert_eq!(summary.exclude_first_connection_campaign_accounts, Some(false));
+        assert!(summary.exclude_first_connection_global.is_none());
+        assert_eq!(summary.exclude_no_profile_picture, Some(true));
+    }
+
+    #[test]
+    fn test_campaign_summary_from_dto_without_progress_stats() {
+        // Arrange
+        let dto = CampaignSummaryDto {
+            id: 1,
+            name: "Empty Campaign".to_string(),
+            creation_time: "2024-01-01T00:00:00Z".to_string(),
+            linkedin_user_list_name: None,
+            linkedin_user_list_id: None,
+            campaign_account_ids: vec![],
+            status: "draft".to_string(),
+            progress_stats: None,
+            exclude_in_other_campaigns: false,
+            exclude_has_other_acc_conversations: false,
+            exclude_contacted_from_sender_in_other_campaign: false,
+            exclude_list_id: None,
+            organization_unit_id: None,
+            exclude_already_messaged_global: None,
+            exclude_already_messaged_campaign_accounts: None,
+            exclude_first_connection_campaign_accounts: None,
+            exclude_first_connection_global: None,
+            exclude_no_profile_picture: None,
+        };
+
+        // Act
+        let summary = campaign_summary_from_dto(dto);
+
+        // Assert
+        assert!(matches!(summary.status, CampaignStatus::Draft));
+        assert!(summary.progress_stats.is_none());
+        assert!(summary.linkedin_user_list_name.is_none());
+        assert!(summary.linkedin_user_list_id.is_none());
+        assert!(summary.campaign_account_ids.is_empty());
+    }
+}

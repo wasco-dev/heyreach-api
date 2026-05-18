@@ -193,3 +193,173 @@ fn build_api_error(code: ApiErrorCode, message: &str) -> ApiError {
         message: message.to_string(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // -------- build_api_error --------
+
+    #[test]
+    fn test_build_api_error() {
+        // Arrange
+        let code = ApiErrorCode::BadRequest;
+        let message = "Something went wrong";
+
+        // Act
+        let error = build_api_error(code, message);
+
+        // Assert
+        assert!(matches!(error.code, ApiErrorCode::BadRequest));
+        assert_eq!(error.message, "Something went wrong");
+    }
+
+    #[test]
+    fn test_build_api_error_unknown_code() {
+        // Arrange & Act
+        let error = build_api_error(ApiErrorCode::Unknown, "unexpected failure");
+
+        // Assert
+        assert!(matches!(error.code, ApiErrorCode::Unknown));
+        assert_eq!(error.message, "unexpected failure");
+    }
+
+    // -------- map_http_status_to_error: status code mapping --------
+
+    #[test]
+    fn test_map_http_status_to_error_400_bad_request() {
+        // Arrange & Act
+        let error = map_http_status_to_error(400, b"not json");
+
+        // Assert
+        assert!(matches!(error.code, ApiErrorCode::BadRequest));
+    }
+
+    #[test]
+    fn test_map_http_status_to_error_401_unauthorized() {
+        // Arrange & Act
+        let error = map_http_status_to_error(401, b"not json");
+
+        // Assert
+        assert!(matches!(error.code, ApiErrorCode::Unauthorized));
+    }
+
+    #[test]
+    fn test_map_http_status_to_error_404_not_found() {
+        // Arrange & Act
+        let error = map_http_status_to_error(404, b"not json");
+
+        // Assert
+        assert!(matches!(error.code, ApiErrorCode::NotFound));
+    }
+
+    #[test]
+    fn test_map_http_status_to_error_422_validation() {
+        // Arrange & Act
+        let error = map_http_status_to_error(422, b"not json");
+
+        // Assert
+        assert!(matches!(error.code, ApiErrorCode::Validation));
+    }
+
+    #[test]
+    fn test_map_http_status_to_error_429_too_many_requests() {
+        // Arrange & Act
+        let error = map_http_status_to_error(429, b"not json");
+
+        // Assert
+        assert!(matches!(error.code, ApiErrorCode::TooManyRequests));
+    }
+
+    #[test]
+    fn test_map_http_status_to_error_500_unknown() {
+        // Arrange & Act
+        let error = map_http_status_to_error(500, b"not json");
+
+        // Assert
+        assert!(matches!(error.code, ApiErrorCode::Unknown));
+    }
+
+    // -------- map_http_status_to_error: message extraction --------
+
+    #[test]
+    fn test_map_http_status_to_error_extracts_detail_field() {
+        // Arrange
+        let body = br#"{"detail": "API key is invalid"}"#;
+
+        // Act
+        let error = map_http_status_to_error(401, body);
+
+        // Assert
+        assert_eq!(error.message, "API key is invalid");
+    }
+
+    #[test]
+    fn test_map_http_status_to_error_extracts_error_message_field() {
+        // Arrange
+        let body = br#"{"errorMessage": "Rate limit exceeded"}"#;
+
+        // Act
+        let error = map_http_status_to_error(429, body);
+
+        // Assert
+        assert_eq!(error.message, "Rate limit exceeded");
+    }
+
+    #[test]
+    fn test_map_http_status_to_error_extracts_message_field() {
+        // Arrange
+        let body = br#"{"message": "Resource not found"}"#;
+
+        // Act
+        let error = map_http_status_to_error(404, body);
+
+        // Assert
+        assert_eq!(error.message, "Resource not found");
+    }
+
+    #[test]
+    fn test_map_http_status_to_error_detail_takes_priority() {
+        // Arrange
+        let body = br#"{"detail": "from detail", "message": "from message"}"#;
+
+        // Act
+        let error = map_http_status_to_error(400, body);
+
+        // Assert
+        assert_eq!(error.message, "from detail");
+    }
+
+    #[test]
+    fn test_map_http_status_to_error_falls_back_for_non_json() {
+        // Arrange
+        let body = b"plain text error";
+
+        // Act
+        let error = map_http_status_to_error(500, body);
+
+        // Assert
+        assert_eq!(error.message, "HTTP 500");
+    }
+
+    #[test]
+    fn test_map_http_status_to_error_falls_back_for_json_without_recognized_keys() {
+        // Arrange
+        let body = br#"{"code": 500, "info": "something"}"#;
+
+        // Act
+        let error = map_http_status_to_error(500, body);
+
+        // Assert
+        assert_eq!(error.message, "HTTP 500");
+    }
+
+    #[test]
+    fn test_map_http_status_to_error_falls_back_for_empty_body() {
+        // Arrange & Act
+        let error = map_http_status_to_error(400, b"");
+
+        // Assert
+        assert_eq!(error.message, "HTTP 400");
+    }
+}
