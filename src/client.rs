@@ -85,8 +85,10 @@ fn campaign_summary_from_dto(campaign: CampaignSummaryDto) -> CampaignSummary {
         status: campaign_status_from_string(&campaign.status),
         progress_stats: campaign.progress_stats.map(progress_stats_from_dto),
         exclude_already_messaged_global: campaign.exclude_already_messaged_global,
-        exclude_already_messaged_campaign_accounts: campaign.exclude_already_messaged_campaign_accounts,
-        exclude_first_connection_campaign_accounts: campaign.exclude_first_connection_campaign_accounts,
+        exclude_already_messaged_campaign_accounts: campaign
+            .exclude_already_messaged_campaign_accounts,
+        exclude_first_connection_campaign_accounts: campaign
+            .exclude_first_connection_campaign_accounts,
         exclude_first_connection_global: campaign.exclude_first_connection_global,
         exclude_no_profile_picture: campaign.exclude_no_profile_picture,
         exclude_list_id: campaign.exclude_list_id,
@@ -659,11 +661,7 @@ pub fn webhooks_get_all(api_key: &str, filter: GetWebhooksFilter) -> Result<Webh
 
     Ok(WebhookPage {
         total_count: response.total_count,
-        items: response
-            .items
-            .into_iter()
-            .map(webhook_from_dto)
-            .collect(),
+        items: response.items.into_iter().map(webhook_from_dto).collect(),
     })
 }
 
@@ -688,28 +686,64 @@ mod tests {
     #[test]
     fn test_campaign_status_from_string_valid_statuses() {
         // Arrange & Act & Assert
-        assert!(matches!(campaign_status_from_string("draft"), CampaignStatus::Draft));
-        assert!(matches!(campaign_status_from_string("active"), CampaignStatus::Active));
-        assert!(matches!(campaign_status_from_string("paused"), CampaignStatus::Paused));
-        assert!(matches!(campaign_status_from_string("finished"), CampaignStatus::Finished));
-        assert!(matches!(campaign_status_from_string("canceled"), CampaignStatus::Canceled));
+        assert!(matches!(
+            campaign_status_from_string("draft"),
+            CampaignStatus::Draft
+        ));
+        assert!(matches!(
+            campaign_status_from_string("active"),
+            CampaignStatus::Active
+        ));
+        assert!(matches!(
+            campaign_status_from_string("paused"),
+            CampaignStatus::Paused
+        ));
+        assert!(matches!(
+            campaign_status_from_string("finished"),
+            CampaignStatus::Finished
+        ));
+        assert!(matches!(
+            campaign_status_from_string("canceled"),
+            CampaignStatus::Canceled
+        ));
     }
 
     #[test]
     fn test_campaign_status_from_string_unknown() {
         // Arrange & Act & Assert
-        assert!(matches!(campaign_status_from_string("invalid"), CampaignStatus::Unknown));
-        assert!(matches!(campaign_status_from_string(""), CampaignStatus::Unknown));
+        assert!(matches!(
+            campaign_status_from_string("invalid"),
+            CampaignStatus::Unknown
+        ));
+        assert!(matches!(
+            campaign_status_from_string(""),
+            CampaignStatus::Unknown
+        ));
     }
 
     #[test]
     fn test_campaign_status_from_string_case_insensitive() {
         // Arrange & Act & Assert
-        assert!(matches!(campaign_status_from_string("DRAFT"), CampaignStatus::Draft));
-        assert!(matches!(campaign_status_from_string("Active"), CampaignStatus::Active));
-        assert!(matches!(campaign_status_from_string("PAUSED"), CampaignStatus::Paused));
-        assert!(matches!(campaign_status_from_string("Finished"), CampaignStatus::Finished));
-        assert!(matches!(campaign_status_from_string("CANCELED"), CampaignStatus::Canceled));
+        assert!(matches!(
+            campaign_status_from_string("DRAFT"),
+            CampaignStatus::Draft
+        ));
+        assert!(matches!(
+            campaign_status_from_string("Active"),
+            CampaignStatus::Active
+        ));
+        assert!(matches!(
+            campaign_status_from_string("PAUSED"),
+            CampaignStatus::Paused
+        ));
+        assert!(matches!(
+            campaign_status_from_string("Finished"),
+            CampaignStatus::Finished
+        ));
+        assert!(matches!(
+            campaign_status_from_string("CANCELED"),
+            CampaignStatus::Canceled
+        ));
     }
 
     // -------- campaign_status_to_string --------
@@ -720,9 +754,18 @@ mod tests {
         assert_eq!(campaign_status_to_string(&CampaignStatus::Draft), "draft");
         assert_eq!(campaign_status_to_string(&CampaignStatus::Active), "active");
         assert_eq!(campaign_status_to_string(&CampaignStatus::Paused), "paused");
-        assert_eq!(campaign_status_to_string(&CampaignStatus::Finished), "finished");
-        assert_eq!(campaign_status_to_string(&CampaignStatus::Canceled), "canceled");
-        assert_eq!(campaign_status_to_string(&CampaignStatus::Unknown), "unknown");
+        assert_eq!(
+            campaign_status_to_string(&CampaignStatus::Finished),
+            "finished"
+        );
+        assert_eq!(
+            campaign_status_to_string(&CampaignStatus::Canceled),
+            "canceled"
+        );
+        assert_eq!(
+            campaign_status_to_string(&CampaignStatus::Unknown),
+            "unknown"
+        );
     }
 
     #[test]
@@ -759,13 +802,19 @@ mod tests {
     fn test_list_type_from_string_valid_types() {
         // Arrange & Act & Assert
         assert!(matches!(list_type_from_string("leads"), ListType::Leads));
-        assert!(matches!(list_type_from_string("companies"), ListType::Companies));
+        assert!(matches!(
+            list_type_from_string("companies"),
+            ListType::Companies
+        ));
     }
 
     #[test]
     fn test_list_type_from_string_unknown() {
         // Arrange & Act & Assert
-        assert!(matches!(list_type_from_string("invalid"), ListType::Unknown));
+        assert!(matches!(
+            list_type_from_string("invalid"),
+            ListType::Unknown
+        ));
         assert!(matches!(list_type_from_string(""), ListType::Unknown));
     }
 
@@ -773,7 +822,10 @@ mod tests {
     fn test_list_type_from_string_case_insensitive() {
         // Arrange & Act & Assert
         assert!(matches!(list_type_from_string("LEADS"), ListType::Leads));
-        assert!(matches!(list_type_from_string("Companies"), ListType::Companies));
+        assert!(matches!(
+            list_type_from_string("Companies"),
+            ListType::Companies
+        ));
     }
 
     // -------- webhook_event_type_from_string --------
@@ -921,7 +973,10 @@ mod tests {
         assert_eq!(round_tripped.company_name, Some("Acme".to_string()));
         assert_eq!(round_tripped.position, Some("CTO".to_string()));
         assert_eq!(round_tripped.about, Some("Builds things".to_string()));
-        assert_eq!(round_tripped.email_address, Some("jane@example.com".to_string()));
+        assert_eq!(
+            round_tripped.email_address,
+            Some("jane@example.com".to_string())
+        );
         assert_eq!(round_tripped.custom_user_fields.len(), 2);
         assert_eq!(round_tripped.custom_user_fields[0].name, "source");
         assert_eq!(round_tripped.custom_user_fields[0].value, "linkedin");
@@ -1036,7 +1091,10 @@ mod tests {
         assert_eq!(webhook.id, 99);
         assert_eq!(webhook.webhook_name, "My Webhook");
         assert_eq!(webhook.webhook_url, "https://example.com/hook");
-        assert!(matches!(webhook.event_type, WebhookEventType::ConnectionRequestSent));
+        assert!(matches!(
+            webhook.event_type,
+            WebhookEventType::ConnectionRequestSent
+        ));
         assert_eq!(webhook.campaign_ids, vec![10, 20]);
         assert!(webhook.is_active);
     }
@@ -1104,7 +1162,10 @@ mod tests {
         assert_eq!(summary.name, "Test Campaign");
         assert_eq!(summary.creation_time, "2024-06-01T12:00:00Z");
         assert!(matches!(summary.status, CampaignStatus::Active));
-        assert_eq!(summary.linkedin_user_list_name, Some("Prospects".to_string()));
+        assert_eq!(
+            summary.linkedin_user_list_name,
+            Some("Prospects".to_string())
+        );
         assert_eq!(summary.linkedin_user_list_id, Some(123));
         assert_eq!(summary.campaign_account_ids, vec![1, 2]);
         assert!(summary.progress_stats.is_some());
@@ -1118,7 +1179,10 @@ mod tests {
         assert_eq!(summary.organization_unit_id, Some(789));
         assert_eq!(summary.exclude_already_messaged_global, Some(true));
         assert!(summary.exclude_already_messaged_campaign_accounts.is_none());
-        assert_eq!(summary.exclude_first_connection_campaign_accounts, Some(false));
+        assert_eq!(
+            summary.exclude_first_connection_campaign_accounts,
+            Some(false)
+        );
         assert!(summary.exclude_first_connection_global.is_none());
         assert_eq!(summary.exclude_no_profile_picture, Some(true));
     }

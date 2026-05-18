@@ -26,7 +26,10 @@ pub fn send_request_and_deserialize<T: DeserializeOwned>(
     }
 
     let response_text = String::from_utf8(response_bytes).map_err(|error| {
-        build_api_error(ApiErrorCode::Unknown, &format!("Invalid UTF-8 in response: {}", error))
+        build_api_error(
+            ApiErrorCode::Unknown,
+            &format!("Invalid UTF-8 in response: {}", error),
+        )
     })?;
 
     serde_json::from_str(&response_text).map_err(|error| {
@@ -68,7 +71,12 @@ fn send_http_request(
             &"content-type".to_string(),
             &b"application/json; charset=utf-8".to_vec(),
         )
-        .map_err(|_| build_api_error(ApiErrorCode::Unknown, "Failed to append content-type header"))?;
+        .map_err(|_| {
+            build_api_error(
+                ApiErrorCode::Unknown,
+                "Failed to append content-type header",
+            )
+        })?;
 
     headers
         .append(&"x-api-key".to_string(), api_key.as_bytes())
@@ -155,7 +163,12 @@ fn read_response_body(response: IncomingResponse) -> Result<Vec<u8>, ApiError> {
             Ok(chunk) if chunk.is_empty() => break,
             Ok(chunk) => response_bytes.extend_from_slice(&chunk),
             Err(StreamError::Closed) => break,
-            Err(_) => return Err(build_api_error(ApiErrorCode::Unknown, "Failed to read response")),
+            Err(_) => {
+                return Err(build_api_error(
+                    ApiErrorCode::Unknown,
+                    "Failed to read response",
+                ))
+            }
         }
     }
 
