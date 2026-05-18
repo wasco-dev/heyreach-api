@@ -2,17 +2,17 @@ mod client;
 mod http;
 mod models;
 
-use exports::wasco_dev::heyreach_api::heyreach_api::*;
+mod bindings {
+    wit_bindgen::generate!({ generate_all });
+    use crate::HeyreachApi;
+    export!(HeyreachApi);
+}
 
-wit_bindgen::generate!({
-    generate_all,
-});
+use bindings::exports::wasco_dev::heyreach_api::heyreach_api::*;
 
-struct Component;
+struct HeyreachApi;
 
-export!(Component);
-
-impl Guest for Component {
+impl Guest for HeyreachApi {
     // -------- Auth --------
     fn check_api_key(api_key: String) -> Result<(), ApiError> {
         client::check_api_key(&api_key)

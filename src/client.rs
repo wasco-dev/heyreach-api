@@ -1,10 +1,10 @@
-use crate::exports::wasco_dev::heyreach_api::heyreach_api::*;
-use crate::http::{make_request, make_request_empty, HttpMethod};
+use crate::bindings::exports::wasco_dev::heyreach_api::heyreach_api::*;
+use crate::http::{send_request_and_deserialize, send_request_without_response, HttpMethod};
 use crate::models::*;
 
 // -------- Helper functions for conversion --------
 
-fn map_campaign_status(status: &str) -> CampaignStatus {
+fn campaign_status_from_string(status: &str) -> CampaignStatus {
     match status.to_lowercase().as_str() {
         "draft" => CampaignStatus::Draft,
         "active" => CampaignStatus::Active,
@@ -27,7 +27,7 @@ fn campaign_status_to_string(status: &CampaignStatus) -> String {
     .to_string()
 }
 
-fn map_list_type(list_type: &str) -> ListType {
+fn list_type_from_string(list_type: &str) -> ListType {
     match list_type.to_lowercase().as_str() {
         "leads" => ListType::Leads,
         "companies" => ListType::Companies,
@@ -35,7 +35,7 @@ fn map_list_type(list_type: &str) -> ListType {
     }
 }
 
-fn map_webhook_event_type(event_type: &str) -> WebhookEventType {
+fn webhook_event_type_from_string(event_type: &str) -> WebhookEventType {
     match event_type.to_lowercase().as_str() {
         "connectionrequestsent" | "connection_request_sent" | "connection-request-sent" => {
             WebhookEventType::ConnectionRequestSent
@@ -62,65 +62,65 @@ fn webhook_event_type_to_string(event_type: &WebhookEventType) -> String {
     .to_string()
 }
 
-fn convert_progress_stats(dto: ProgressStatsDto) -> ProgressStats {
+fn progress_stats_from_dto(stats: ProgressStatsDto) -> ProgressStats {
     ProgressStats {
-        total_users: dto.total_users,
-        total_users_in_progress: dto.total_users_in_progress,
-        total_users_pending: dto.total_users_pending,
-        total_users_finished: dto.total_users_finished,
-        total_users_failed: dto.total_users_failed,
-        total_users_manually_stopped: dto.total_users_manually_stopped,
-        total_users_excluded: dto.total_users_excluded,
+        total_users: stats.total_users,
+        total_users_in_progress: stats.total_users_in_progress,
+        total_users_pending: stats.total_users_pending,
+        total_users_finished: stats.total_users_finished,
+        total_users_failed: stats.total_users_failed,
+        total_users_manually_stopped: stats.total_users_manually_stopped,
+        total_users_excluded: stats.total_users_excluded,
     }
 }
 
-fn convert_campaign_summary(dto: CampaignSummaryDto) -> CampaignSummary {
+fn campaign_summary_from_dto(campaign: CampaignSummaryDto) -> CampaignSummary {
     CampaignSummary {
-        id: dto.id,
-        name: dto.name,
-        creation_time: dto.creation_time,
-        linkedin_user_list_name: dto.linkedin_user_list_name,
-        linkedin_user_list_id: dto.linkedin_user_list_id,
-        campaign_account_ids: dto.campaign_account_ids,
-        status: map_campaign_status(&dto.status),
-        progress_stats: dto.progress_stats.map(convert_progress_stats),
-        exclude_already_messaged_global: dto.exclude_already_messaged_global,
-        exclude_already_messaged_campaign_accounts: dto.exclude_already_messaged_campaign_accounts,
-        exclude_first_connection_campaign_accounts: dto.exclude_first_connection_campaign_accounts,
-        exclude_first_connection_global: dto.exclude_first_connection_global,
-        exclude_no_profile_picture: dto.exclude_no_profile_picture,
-        exclude_list_id: dto.exclude_list_id,
-        exclude_in_other_campaigns: dto.exclude_in_other_campaigns,
-        exclude_has_other_acc_conversations: dto.exclude_has_other_acc_conversations,
-        exclude_contacted_from_sender_in_other_campaign: dto
+        id: campaign.id,
+        name: campaign.name,
+        creation_time: campaign.creation_time,
+        linkedin_user_list_name: campaign.linkedin_user_list_name,
+        linkedin_user_list_id: campaign.linkedin_user_list_id,
+        campaign_account_ids: campaign.campaign_account_ids,
+        status: campaign_status_from_string(&campaign.status),
+        progress_stats: campaign.progress_stats.map(progress_stats_from_dto),
+        exclude_already_messaged_global: campaign.exclude_already_messaged_global,
+        exclude_already_messaged_campaign_accounts: campaign.exclude_already_messaged_campaign_accounts,
+        exclude_first_connection_campaign_accounts: campaign.exclude_first_connection_campaign_accounts,
+        exclude_first_connection_global: campaign.exclude_first_connection_global,
+        exclude_no_profile_picture: campaign.exclude_no_profile_picture,
+        exclude_list_id: campaign.exclude_list_id,
+        exclude_in_other_campaigns: campaign.exclude_in_other_campaigns,
+        exclude_has_other_acc_conversations: campaign.exclude_has_other_acc_conversations,
+        exclude_contacted_from_sender_in_other_campaign: campaign
             .exclude_contacted_from_sender_in_other_campaign,
-        organization_unit_id: dto.organization_unit_id,
+        organization_unit_id: campaign.organization_unit_id,
     }
 }
 
-fn convert_lead_dto(dto: LeadDto) -> Lead {
+fn lead_from_dto(lead: LeadDto) -> Lead {
     Lead {
-        first_name: dto.first_name,
-        last_name: dto.last_name,
-        profile_url: dto.profile_url,
-        location: dto.location,
-        summary: dto.summary,
-        company_name: dto.company_name,
-        position: dto.position,
-        about: dto.about,
-        email_address: dto.email_address,
-        custom_user_fields: dto
+        first_name: lead.first_name,
+        last_name: lead.last_name,
+        profile_url: lead.profile_url,
+        location: lead.location,
+        summary: lead.summary,
+        company_name: lead.company_name,
+        position: lead.position,
+        about: lead.about,
+        email_address: lead.email_address,
+        custom_user_fields: lead
             .custom_user_fields
             .into_iter()
-            .map(|f| CustomUserField {
-                name: f.name,
-                value: f.value,
+            .map(|field| CustomUserField {
+                name: field.name,
+                value: field.value,
             })
             .collect(),
     }
 }
 
-fn convert_lead(lead: Lead) -> LeadDto {
+fn lead_to_dto(lead: Lead) -> LeadDto {
     LeadDto {
         first_name: lead.first_name,
         last_name: lead.last_name,
@@ -134,18 +134,40 @@ fn convert_lead(lead: Lead) -> LeadDto {
         custom_user_fields: lead
             .custom_user_fields
             .into_iter()
-            .map(|f| CustomUserFieldDto {
-                name: f.name,
-                value: f.value,
+            .map(|field| CustomUserFieldDto {
+                name: field.name,
+                value: field.value,
             })
             .collect(),
+    }
+}
+
+fn list_summary_from_dto(list: ListSummaryDto) -> ListSummary {
+    ListSummary {
+        id: list.id,
+        name: list.name,
+        total_items_count: list.total_items_count,
+        list_type: list_type_from_string(&list.list_type),
+        creation_time: list.creation_time,
+        campaign_ids: list.campaign_ids,
+    }
+}
+
+fn webhook_from_dto(webhook: WebhookDto) -> Webhook {
+    Webhook {
+        id: webhook.id,
+        webhook_name: webhook.webhook_name,
+        webhook_url: webhook.webhook_url,
+        event_type: webhook_event_type_from_string(&webhook.event_type),
+        campaign_ids: webhook.campaign_ids,
+        is_active: webhook.is_active,
     }
 }
 
 // -------- Auth --------
 
 pub fn check_api_key(api_key: &str) -> Result<(), ApiError> {
-    make_request_empty(
+    send_request_without_response(
         HttpMethod::Get,
         "/api/public/auth/CheckApiKey",
         api_key,
@@ -168,37 +190,36 @@ pub fn campaigns_get_all(api_key: &str, filter: CampaignFilter) -> Result<Campai
         account_ids: filter.account_ids,
     };
 
-    let response: CampaignPageDto = make_request(
+    let response: CampaignPageDto = send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/campaign/GetAll",
         api_key,
         Some(&filter_dto),
     )?;
 
-    // ✅ FIXED: API returns {totalCount, items} directly, NOT {page, items}
     Ok(CampaignPage {
         total_count: response.total_count,
         items: response
             .items
             .into_iter()
-            .map(convert_campaign_summary)
+            .map(campaign_summary_from_dto)
             .collect(),
     })
 }
 
 pub fn campaigns_get_by_id(api_key: &str, campaign_id: u64) -> Result<CampaignSummary, ApiError> {
-    let response: CampaignSummaryDto = make_request(
+    let response: CampaignSummaryDto = send_request_and_deserialize(
         HttpMethod::Get,
         &format!("/api/public/campaign/GetById?campaignId={}", campaign_id),
         api_key,
         None::<&()>,
     )?;
 
-    Ok(convert_campaign_summary(response))
+    Ok(campaign_summary_from_dto(response))
 }
 
 pub fn campaigns_resume(api_key: &str, campaign_id: u64) -> Result<(), ApiError> {
-    make_request_empty(
+    send_request_without_response(
         HttpMethod::Post,
         &format!("/api/public/campaign/Resume?campaignId={}", campaign_id),
         api_key,
@@ -207,7 +228,7 @@ pub fn campaigns_resume(api_key: &str, campaign_id: u64) -> Result<(), ApiError>
 }
 
 pub fn campaigns_pause(api_key: &str, campaign_id: u64) -> Result<(), ApiError> {
-    make_request_empty(
+    send_request_without_response(
         HttpMethod::Post,
         &format!("/api/public/campaign/Pause?campaignId={}", campaign_id),
         api_key,
@@ -224,21 +245,19 @@ pub fn campaigns_add_leads(
         account_lead_pairs: payload
             .account_lead_pairs
             .into_iter()
-            .map(|p| AccountLeadPairDto {
-                linked_in_account_id: p.linked_in_account_id,
-                lead: convert_lead(p.lead),
+            .map(|pair| AccountLeadPairDto {
+                linked_in_account_id: pair.linked_in_account_id,
+                lead: lead_to_dto(pair.lead),
             })
             .collect(),
     };
 
-    let response: u32 = make_request(
+    send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/campaign/AddLeadsToCampaign",
         api_key,
         Some(&payload_dto),
-    )?;
-
-    Ok(response)
+    )
 }
 
 pub fn campaigns_add_leads_v2(
@@ -250,14 +269,14 @@ pub fn campaigns_add_leads_v2(
         account_lead_pairs: payload
             .account_lead_pairs
             .into_iter()
-            .map(|p| AccountLeadPairDto {
-                linked_in_account_id: p.linked_in_account_id,
-                lead: convert_lead(p.lead),
+            .map(|pair| AccountLeadPairDto {
+                linked_in_account_id: pair.linked_in_account_id,
+                lead: lead_to_dto(pair.lead),
             })
             .collect(),
     };
 
-    let response: CampaignAddLeadsV2ResultDto = make_request(
+    let response: CampaignAddLeadsV2ResultDto = send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/campaign/AddLeadsToCampaignV2",
         api_key,
@@ -280,47 +299,32 @@ pub fn lists_get_all(api_key: &str, filter: ListGetAllFilter) -> Result<ListPage
         keyword: filter.keyword,
     };
 
-    let response: ListPageDto = make_request(
+    let response: ListPageDto = send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/list/GetAll",
         api_key,
         Some(&filter_dto),
     )?;
 
-    // ✅ FIXED: API returns {totalCount, items} directly, NOT {page, items}
     Ok(ListPage {
         total_count: response.total_count,
         items: response
             .items
             .into_iter()
-            .map(|dto| ListSummary {
-                id: dto.id,
-                name: dto.name,
-                total_items_count: dto.total_items_count,
-                list_type: map_list_type(&dto.list_type),
-                creation_time: dto.creation_time,
-                campaign_ids: dto.campaign_ids,
-            })
+            .map(list_summary_from_dto)
             .collect(),
     })
 }
 
 pub fn lists_get_by_id(api_key: &str, list_id: u64) -> Result<ListSummary, ApiError> {
-    let response: ListSummaryDto = make_request(
+    let response: ListSummaryDto = send_request_and_deserialize(
         HttpMethod::Get,
         &format!("/api/public/list/GetById?listId={}", list_id),
         api_key,
         None::<&()>,
     )?;
 
-    Ok(ListSummary {
-        id: response.id,
-        name: response.name,
-        total_items_count: response.total_items_count,
-        list_type: map_list_type(&response.list_type),
-        creation_time: response.creation_time,
-        campaign_ids: response.campaign_ids,
-    })
+    Ok(list_summary_from_dto(response))
 }
 
 pub fn lists_get_leads(
@@ -337,27 +341,26 @@ pub fn lists_get_leads(
         keyword,
     };
 
-    let response: ListLeadsPageDto = make_request(
+    let response: ListLeadsPageDto = send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/list/GetLeadsFromList",
         api_key,
         Some(&request_dto),
     )?;
 
-    // ✅ FIXED: API returns {totalCount, items} directly
     Ok(ListLeadsPage {
         total_count: response.total_count,
-        items: response.items.into_iter().map(convert_lead_dto).collect(),
+        items: response.items.into_iter().map(lead_from_dto).collect(),
     })
 }
 
 pub fn lists_add_leads(api_key: &str, list_id: u64, leads: Vec<Lead>) -> Result<(), ApiError> {
     let request_dto = ListAddLeadsRequestDto {
         list_id,
-        leads: leads.into_iter().map(convert_lead).collect(),
+        leads: leads.into_iter().map(lead_to_dto).collect(),
     };
 
-    make_request_empty(
+    send_request_without_response(
         HttpMethod::Post,
         "/api/public/list/AddLeadsToList",
         api_key,
@@ -372,10 +375,10 @@ pub fn lists_add_leads_v2(
 ) -> Result<CampaignAddLeadsV2Result, ApiError> {
     let request_dto = ListAddLeadsRequestDto {
         list_id,
-        leads: leads.into_iter().map(convert_lead).collect(),
+        leads: leads.into_iter().map(lead_to_dto).collect(),
     };
 
-    let response: CampaignAddLeadsV2ResultDto = make_request(
+    let response: CampaignAddLeadsV2ResultDto = send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/list/AddLeadsToListV2",
         api_key,
@@ -395,7 +398,7 @@ pub fn lists_delete_leads(api_key: &str, request: ListLeadDeleteRequest) -> Resu
         lead_member_ids: request.lead_member_ids,
     };
 
-    make_request_empty(
+    send_request_without_response(
         HttpMethod::Delete,
         "/api/public/list/DeleteLeadsFromList",
         api_key,
@@ -412,7 +415,7 @@ pub fn lists_delete_leads_by_profile_url(
         profile_urls: request.profile_urls,
     };
 
-    let response: ListLeadDeleteByProfileUrlResponseDto = make_request(
+    let response: ListLeadDeleteByProfileUrlResponseDto = send_request_and_deserialize(
         HttpMethod::Delete,
         "/api/public/list/DeleteLeadsFromListByProfileUrl",
         api_key,
@@ -429,14 +432,14 @@ pub fn lists_delete_leads_by_profile_url(
 pub fn lead_get(api_key: &str, profile_url: String) -> Result<Lead, ApiError> {
     let request_dto = LeadGetRequestDto { profile_url };
 
-    let response: LeadDto = make_request(
+    let response: LeadDto = send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/lead/GetLead",
         api_key,
         Some(&request_dto),
     )?;
 
-    Ok(convert_lead_dto(response))
+    Ok(lead_from_dto(response))
 }
 
 pub fn lead_get_lists(
@@ -451,22 +454,21 @@ pub fn lead_get_lists(
         limit: request.limit,
     };
 
-    let response: LeadListsResponseDto = make_request(
+    let response: LeadListsResponseDto = send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/list/GetListsForLead",
         api_key,
         Some(&request_dto),
     )?;
 
-    // ✅ FIXED: API returns {totalCount, items} directly
     Ok(LeadListsResponse {
         total_count: response.total_count,
         items: response
             .items
             .into_iter()
-            .map(|dto| LeadListSummary {
-                list_id: dto.list_id,
-                list_name: dto.list_name,
+            .map(|lead_list| LeadListSummary {
+                list_id: lead_list.list_id,
+                list_name: lead_list.list_name,
             })
             .collect(),
     })
@@ -475,7 +477,7 @@ pub fn lead_get_lists(
 pub fn lead_get_tags(api_key: &str, profile_url: String) -> Result<LeadTagsResponse, ApiError> {
     let request_dto = LeadGetRequestDto { profile_url };
 
-    let response: LeadTagsResponseDto = make_request(
+    let response: LeadTagsResponseDto = send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/lead/GetTags",
         api_key,
@@ -498,7 +500,7 @@ pub fn lead_replace_tags(
         create_tag_if_not_existing: request.create_tag_if_not_existing,
     };
 
-    let response: LeadReplaceTagsResponseDto = make_request(
+    let response: LeadReplaceTagsResponseDto = send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/lead/ReplaceTags",
         api_key,
@@ -529,25 +531,24 @@ pub fn inbox_get_conversations_v2(
         limit: request.limit,
     };
 
-    let response: InboxConversationPageDto = make_request(
+    let response: InboxConversationPageDto = send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/inbox/GetConversationsV2",
         api_key,
         Some(&request_dto),
     )?;
 
-    // ✅ FIXED: API returns {totalCount, items} directly
     Ok(InboxConversationPage {
         total_count: response.total_count,
         items: response
             .items
             .into_iter()
-            .map(|dto| InboxConversationSummary {
-                conversation_id: dto.conversation_id,
-                linked_in_account_id: dto.linked_in_account_id,
-                lead_profile_url: dto.lead_profile_url,
-                last_message_snippet: dto.last_message_snippet,
-                seen: dto.seen,
+            .map(|conversation| InboxConversationSummary {
+                conversation_id: conversation.conversation_id,
+                linked_in_account_id: conversation.linked_in_account_id,
+                lead_profile_url: conversation.lead_profile_url,
+                last_message_snippet: conversation.last_message_snippet,
+                seen: conversation.seen,
             })
             .collect(),
     })
@@ -561,7 +562,7 @@ pub fn inbox_send_message(api_key: &str, request: InboxSendMessageRequest) -> Re
         linked_in_account_id: request.linked_in_account_id,
     };
 
-    make_request_empty(
+    send_request_without_response(
         HttpMethod::Post,
         "/api/public/inbox/SendMessage",
         api_key,
@@ -581,7 +582,7 @@ pub fn li_account_get_all(
         keyword: filter.keyword,
     };
 
-    let response: LiAccountPageDto = make_request(
+    let response: LiAccountPageDto = send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/li_account/GetAll",
         api_key,
@@ -593,16 +594,16 @@ pub fn li_account_get_all(
         items: response
             .items
             .into_iter()
-            .map(|dto| LiAccountSummary {
-                id: dto.id,
-                email_address: dto.email_address,
-                first_name: dto.first_name,
-                last_name: dto.last_name,
-                is_active: dto.is_active,
-                active_campaigns: dto.active_campaigns,
-                auth_is_valid: dto.auth_is_valid,
-                is_valid_navigator: dto.is_valid_navigator,
-                is_valid_recruiter: dto.is_valid_recruiter,
+            .map(|account| LiAccountSummary {
+                id: account.id,
+                email_address: account.email_address,
+                first_name: account.first_name,
+                last_name: account.last_name,
+                is_active: account.is_active,
+                active_campaigns: account.active_campaigns,
+                auth_is_valid: account.auth_is_valid,
+                is_valid_navigator: account.is_valid_navigator,
+                is_valid_recruiter: account.is_valid_recruiter,
             })
             .collect(),
     })
@@ -619,25 +620,18 @@ pub fn webhooks_create(api_key: &str, request: CreateWebhookRequest) -> Result<W
         is_active: request.is_active,
     };
 
-    let response: WebhookDto = make_request(
+    let response: WebhookDto = send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/webhooks/CreateWebhook",
         api_key,
         Some(&request_dto),
     )?;
 
-    Ok(Webhook {
-        id: response.id,
-        webhook_name: response.webhook_name,
-        webhook_url: response.webhook_url,
-        event_type: map_webhook_event_type(&response.event_type),
-        campaign_ids: response.campaign_ids,
-        is_active: response.is_active,
-    })
+    Ok(webhook_from_dto(response))
 }
 
 pub fn webhooks_get_by_id(api_key: &str, webhook_id: u64) -> Result<Webhook, ApiError> {
-    let response: WebhookDto = make_request(
+    let response: WebhookDto = send_request_and_deserialize(
         HttpMethod::Get,
         &format!(
             "/api/public/webhooks/GetWebhookById?webhookId={}",
@@ -647,14 +641,7 @@ pub fn webhooks_get_by_id(api_key: &str, webhook_id: u64) -> Result<Webhook, Api
         None::<&()>,
     )?;
 
-    Ok(Webhook {
-        id: response.id,
-        webhook_name: response.webhook_name,
-        webhook_url: response.webhook_url,
-        event_type: map_webhook_event_type(&response.event_type),
-        campaign_ids: response.campaign_ids,
-        is_active: response.is_active,
-    })
+    Ok(webhook_from_dto(response))
 }
 
 pub fn webhooks_get_all(api_key: &str, filter: GetWebhooksFilter) -> Result<WebhookPage, ApiError> {
@@ -663,33 +650,25 @@ pub fn webhooks_get_all(api_key: &str, filter: GetWebhooksFilter) -> Result<Webh
         limit: filter.limit,
     };
 
-    let response: WebhookPageDto = make_request(
+    let response: WebhookPageDto = send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/webhooks/GetAllWebhooks",
         api_key,
         Some(&filter_dto),
     )?;
 
-    // ✅ FIXED: API returns {totalCount, items} directly
     Ok(WebhookPage {
         total_count: response.total_count,
         items: response
             .items
             .into_iter()
-            .map(|dto| Webhook {
-                id: dto.id,
-                webhook_name: dto.webhook_name,
-                webhook_url: dto.webhook_url,
-                event_type: map_webhook_event_type(&dto.event_type),
-                campaign_ids: dto.campaign_ids,
-                is_active: dto.is_active,
-            })
+            .map(webhook_from_dto)
             .collect(),
     })
 }
 
 pub fn webhooks_delete(api_key: &str, webhook_id: u64) -> Result<(), ApiError> {
-    make_request_empty(
+    send_request_without_response(
         HttpMethod::Delete,
         &format!(
             "/api/public/webhooks/DeleteWebhook?webhookId={}",

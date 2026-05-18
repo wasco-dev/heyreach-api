@@ -1,4 +1,4 @@
-package wasco-dev:heyreach-api@0.1.0;
+package wasco-dev:heyreach-api@0.1.1;
 
 /// ------------------------
 /// Main client interface
@@ -43,10 +43,9 @@ interface heyreach-api {
       unknown,
     }
 
-    /// ✅ FIXED: Added missing fields and changed totalUsersInProgress to s32
     record progress-stats {
       total-users: u32,
-      total-users-in-progress: s32,  // ✅ Can be negative (e.g., -98)
+      total-users-in-progress: s32,
       total-users-pending: u32,
       total-users-finished: u32,
       total-users-failed: u32,
@@ -54,7 +53,6 @@ interface heyreach-api {
       total-users-excluded: u32,
     }
 
-    /// ✅ FIXED: Added missing fields from actual API response
     record campaign-summary {
       id: u64,
       name: string,
@@ -64,14 +62,14 @@ interface heyreach-api {
       campaign-account-ids: list<u32>,
       status: campaign-status,
       progress-stats: option<progress-stats>,
-      
+
       // Fields that exist in actual API response
       exclude-in-other-campaigns: bool,
       exclude-has-other-acc-conversations: bool,
       exclude-contacted-from-sender-in-other-campaign: bool,
       exclude-list-id: option<u64>,
       organization-unit-id: option<u64>,
-      
+
       // Legacy fields (may not be in response, kept for backward compat)
       exclude-already-messaged-global: option<bool>,
       exclude-already-messaged-campaign-accounts: option<bool>,
@@ -80,9 +78,8 @@ interface heyreach-api {
       exclude-no-profile-picture: option<bool>,
     }
 
-    /// ✅ FIXED: API returns {totalCount, items}, NOT {page, items}
     record campaign-page {
-      total-count: u32,  // ✅ Direct field, not nested
+      total-count: u32,
       items: list<campaign-summary>,
     }
 
@@ -151,9 +148,8 @@ interface heyreach-api {
       campaign-ids: list<u64>,
     }
 
-    /// ✅ FIXED: Changed from {page, items} to {total-count, items}
     record list-page {
-      total-count: u32,  // ✅ Direct field from API response
+      total-count: u32,
       items: list<list-summary>,
     }
 
@@ -164,9 +160,8 @@ interface heyreach-api {
     }
 
     /// A page of leads for a list.
-    /// ✅ FIXED: Changed from {page, items} to {total-count, items}
     record list-leads-page {
-      total-count: u32,  // ✅ Direct field from API response
+      total-count: u32,
       items: list<lead>,
     }
 
@@ -208,9 +203,8 @@ interface heyreach-api {
       list-name: string,
     }
 
-    /// ✅ FIXED: Changed from {page, items} to {total-count, items}
     record lead-lists-response {
-      total-count: u32,  // ✅ Direct field from API response
+      total-count: u32,
       items: list<lead-list-summary>,
     }
 
@@ -256,9 +250,8 @@ interface heyreach-api {
       seen: bool,
     }
 
-    /// ✅ FIXED: Changed from {page, items} to {total-count, items}
     record inbox-conversation-page {
-      total-count: u32,  // ✅ Direct field from API response
+      total-count: u32,
       items: list<inbox-conversation-summary>,
     }
 
@@ -280,21 +273,19 @@ interface heyreach-api {
     }
 
     record li-account-summary {
-    id: u32,
-    email-address: string,
-    first-name: string,
-    last-name: string,
-    is-active: bool,
-    active-campaigns: u32,
-    auth-is-valid: bool,
-    is-valid-navigator: bool,
-    is-valid-recruiter: bool,
-  }
+      id: u32,
+      email-address: string,
+      first-name: string,
+      last-name: string,
+      is-active: bool,
+      active-campaigns: u32,
+      auth-is-valid: bool,
+      is-valid-navigator: bool,
+      is-valid-recruiter: bool,
+    }
 
-
-    /// ✅ FIXED: Changed from {page, items} to {total-count, items}
     record li-account-page {
-      total-count: u32,  // ✅ Direct field from API response
+      total-count: u32,
       items: list<li-account-summary>,
     }
 
@@ -332,9 +323,8 @@ interface heyreach-api {
       limit: u32,
     }
 
-    /// ✅ FIXED: Changed from {page, items} to {total-count, items}
     record webhook-page {
-      total-count: u32,  // ✅ Direct field from API response
+      total-count: u32,
       items: list<webhook>,
     }
 
