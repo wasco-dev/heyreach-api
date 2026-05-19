@@ -2,11 +2,6 @@ on:
   workflow_dispatch:
   push:
     branches: ["main"]
-    paths:
-      - "**/*.toml"
-      - "**/*.lock"
-      - "**.rs"
-      - "**.wit"
 
 jobs:
   cd:
