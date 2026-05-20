@@ -1,5 +1,9 @@
 use crate::bindings::exports::wasco_dev::heyreach_api::heyreach_api::*;
-use crate::http::{send_request_and_deserialize, send_request_without_response, HttpMethod};
+use crate::http::{
+    map_http_error_to_auth_error, map_http_error_to_mutation_error, map_http_error_to_query_error,
+    map_http_error_to_resource_error, send_request_and_deserialize, send_request_without_response,
+    HttpMethod,
+};
 use crate::models::*;
 
 // -------- Helper functions for conversion --------
@@ -168,18 +172,22 @@ fn webhook_from_dto(webhook: WebhookDto) -> Webhook {
 
 // -------- Auth --------
 
-pub fn check_api_key(api_key: &str) -> Result<(), ApiError> {
+pub fn check_api_key(api_key: &str) -> Result<(), AuthError> {
     send_request_without_response(
         HttpMethod::Get,
         "/api/public/auth/CheckApiKey",
         api_key,
         None::<&()>,
     )
+    .map_err(map_http_error_to_auth_error)
 }
 
 // -------- Campaigns --------
 
-pub fn campaigns_get_all(api_key: &str, filter: CampaignFilter) -> Result<CampaignPage, ApiError> {
+pub fn campaigns_get_all(
+    api_key: &str,
+    filter: CampaignFilter,
+) -> Result<CampaignPage, QueryError> {
     let filter_dto = CampaignFilterDto {
         offset: filter.offset,
         limit: filter.limit,
@@ -197,7 +205,8 @@ pub fn campaigns_get_all(api_key: &str, filter: CampaignFilter) -> Result<Campai
         "/api/public/campaign/GetAll",
         api_key,
         Some(&filter_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_query_error)?;
 
     Ok(CampaignPage {
         total_count: response.total_count,
@@ -209,39 +218,45 @@ pub fn campaigns_get_all(api_key: &str, filter: CampaignFilter) -> Result<Campai
     })
 }
 
-pub fn campaigns_get_by_id(api_key: &str, campaign_id: u64) -> Result<CampaignSummary, ApiError> {
+pub fn campaigns_get_by_id(
+    api_key: &str,
+    campaign_id: u64,
+) -> Result<CampaignSummary, ResourceError> {
     let response: CampaignSummaryDto = send_request_and_deserialize(
         HttpMethod::Get,
         &format!("/api/public/campaign/GetById?campaignId={}", campaign_id),
         api_key,
         None::<&()>,
-    )?;
+    )
+    .map_err(map_http_error_to_resource_error)?;
 
     Ok(campaign_summary_from_dto(response))
 }
 
-pub fn campaigns_resume(api_key: &str, campaign_id: u64) -> Result<(), ApiError> {
+pub fn campaigns_resume(api_key: &str, campaign_id: u64) -> Result<(), MutationError> {
     send_request_without_response(
         HttpMethod::Post,
         &format!("/api/public/campaign/Resume?campaignId={}", campaign_id),
         api_key,
         None::<&()>,
     )
+    .map_err(map_http_error_to_mutation_error)
 }
 
-pub fn campaigns_pause(api_key: &str, campaign_id: u64) -> Result<(), ApiError> {
+pub fn campaigns_pause(api_key: &str, campaign_id: u64) -> Result<(), MutationError> {
     send_request_without_response(
         HttpMethod::Post,
         &format!("/api/public/campaign/Pause?campaignId={}", campaign_id),
         api_key,
         None::<&()>,
     )
+    .map_err(map_http_error_to_mutation_error)
 }
 
 pub fn campaigns_add_leads(
     api_key: &str,
     payload: CampaignAddLeadsRequest,
-) -> Result<u32, ApiError> {
+) -> Result<u32, MutationError> {
     let payload_dto = CampaignAddLeadsRequestDto {
         campaign_id: payload.campaign_id,
         account_lead_pairs: payload
@@ -260,12 +275,13 @@ pub fn campaigns_add_leads(
         api_key,
         Some(&payload_dto),
     )
+    .map_err(map_http_error_to_mutation_error)
 }
 
 pub fn campaigns_add_leads_v2(
     api_key: &str,
     payload: CampaignAddLeadsRequest,
-) -> Result<CampaignAddLeadsV2Result, ApiError> {
+) -> Result<CampaignAddLeadsV2Result, MutationError> {
     let payload_dto = CampaignAddLeadsRequestDto {
         campaign_id: payload.campaign_id,
         account_lead_pairs: payload
@@ -283,7 +299,8 @@ pub fn campaigns_add_leads_v2(
         "/api/public/campaign/AddLeadsToCampaignV2",
         api_key,
         Some(&payload_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_mutation_error)?;
 
     Ok(CampaignAddLeadsV2Result {
         added_leads_count: response.added_leads_count,
@@ -294,7 +311,7 @@ pub fn campaigns_add_leads_v2(
 
 // -------- Lists --------
 
-pub fn lists_get_all(api_key: &str, filter: ListGetAllFilter) -> Result<ListPage, ApiError> {
+pub fn lists_get_all(api_key: &str, filter: ListGetAllFilter) -> Result<ListPage, QueryError> {
     let filter_dto = ListGetAllFilterDto {
         offset: filter.offset,
         limit: filter.limit,
@@ -306,7 +323,8 @@ pub fn lists_get_all(api_key: &str, filter: ListGetAllFilter) -> Result<ListPage
         "/api/public/list/GetAll",
         api_key,
         Some(&filter_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_query_error)?;
 
     Ok(ListPage {
         total_count: response.total_count,
@@ -318,13 +336,14 @@ pub fn lists_get_all(api_key: &str, filter: ListGetAllFilter) -> Result<ListPage
     })
 }
 
-pub fn lists_get_by_id(api_key: &str, list_id: u64) -> Result<ListSummary, ApiError> {
+pub fn lists_get_by_id(api_key: &str, list_id: u64) -> Result<ListSummary, ResourceError> {
     let response: ListSummaryDto = send_request_and_deserialize(
         HttpMethod::Get,
         &format!("/api/public/list/GetById?listId={}", list_id),
         api_key,
         None::<&()>,
-    )?;
+    )
+    .map_err(map_http_error_to_resource_error)?;
 
     Ok(list_summary_from_dto(response))
 }
@@ -335,7 +354,7 @@ pub fn lists_get_leads(
     offset: u32,
     limit: u32,
     keyword: Option<String>,
-) -> Result<ListLeadsPage, ApiError> {
+) -> Result<ListLeadsPage, QueryError> {
     let request_dto = ListGetLeadsRequestDto {
         list_id,
         offset,
@@ -348,7 +367,8 @@ pub fn lists_get_leads(
         "/api/public/list/GetLeadsFromList",
         api_key,
         Some(&request_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_query_error)?;
 
     Ok(ListLeadsPage {
         total_count: response.total_count,
@@ -356,7 +376,7 @@ pub fn lists_get_leads(
     })
 }
 
-pub fn lists_add_leads(api_key: &str, list_id: u64, leads: Vec<Lead>) -> Result<(), ApiError> {
+pub fn lists_add_leads(api_key: &str, list_id: u64, leads: Vec<Lead>) -> Result<(), MutationError> {
     let request_dto = ListAddLeadsRequestDto {
         list_id,
         leads: leads.into_iter().map(lead_to_dto).collect(),
@@ -368,13 +388,14 @@ pub fn lists_add_leads(api_key: &str, list_id: u64, leads: Vec<Lead>) -> Result<
         api_key,
         Some(&request_dto),
     )
+    .map_err(map_http_error_to_mutation_error)
 }
 
 pub fn lists_add_leads_v2(
     api_key: &str,
     list_id: u64,
     leads: Vec<Lead>,
-) -> Result<CampaignAddLeadsV2Result, ApiError> {
+) -> Result<CampaignAddLeadsV2Result, MutationError> {
     let request_dto = ListAddLeadsRequestDto {
         list_id,
         leads: leads.into_iter().map(lead_to_dto).collect(),
@@ -385,7 +406,8 @@ pub fn lists_add_leads_v2(
         "/api/public/list/AddLeadsToListV2",
         api_key,
         Some(&request_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_mutation_error)?;
 
     Ok(CampaignAddLeadsV2Result {
         added_leads_count: response.added_leads_count,
@@ -394,7 +416,10 @@ pub fn lists_add_leads_v2(
     })
 }
 
-pub fn lists_delete_leads(api_key: &str, request: ListLeadDeleteRequest) -> Result<(), ApiError> {
+pub fn lists_delete_leads(
+    api_key: &str,
+    request: ListLeadDeleteRequest,
+) -> Result<(), MutationError> {
     let request_dto = ListLeadDeleteRequestDto {
         list_id: request.list_id,
         lead_member_ids: request.lead_member_ids,
@@ -406,12 +431,13 @@ pub fn lists_delete_leads(api_key: &str, request: ListLeadDeleteRequest) -> Resu
         api_key,
         Some(&request_dto),
     )
+    .map_err(map_http_error_to_mutation_error)
 }
 
 pub fn lists_delete_leads_by_profile_url(
     api_key: &str,
     request: ListLeadDeleteByProfileUrlRequest,
-) -> Result<ListLeadDeleteByProfileUrlResponse, ApiError> {
+) -> Result<ListLeadDeleteByProfileUrlResponse, MutationError> {
     let request_dto = ListLeadDeleteByProfileUrlRequestDto {
         list_id: request.list_id,
         profile_urls: request.profile_urls,
@@ -422,7 +448,8 @@ pub fn lists_delete_leads_by_profile_url(
         "/api/public/list/DeleteLeadsFromListByProfileUrl",
         api_key,
         Some(&request_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_mutation_error)?;
 
     Ok(ListLeadDeleteByProfileUrlResponse {
         not_found_in_list: response.not_found_in_list,
@@ -431,7 +458,7 @@ pub fn lists_delete_leads_by_profile_url(
 
 // -------- Lead & Tags --------
 
-pub fn lead_get(api_key: &str, profile_url: String) -> Result<Lead, ApiError> {
+pub fn lead_get(api_key: &str, profile_url: String) -> Result<Lead, ResourceError> {
     let request_dto = LeadGetRequestDto { profile_url };
 
     let response: LeadDto = send_request_and_deserialize(
@@ -439,7 +466,8 @@ pub fn lead_get(api_key: &str, profile_url: String) -> Result<Lead, ApiError> {
         "/api/public/lead/GetLead",
         api_key,
         Some(&request_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_resource_error)?;
 
     Ok(lead_from_dto(response))
 }
@@ -447,7 +475,7 @@ pub fn lead_get(api_key: &str, profile_url: String) -> Result<Lead, ApiError> {
 pub fn lead_get_lists(
     api_key: &str,
     request: LeadListsRequest,
-) -> Result<LeadListsResponse, ApiError> {
+) -> Result<LeadListsResponse, QueryError> {
     let request_dto = LeadListsRequestDto {
         email: request.email,
         linkedin_id: request.linkedin_id,
@@ -461,7 +489,8 @@ pub fn lead_get_lists(
         "/api/public/list/GetListsForLead",
         api_key,
         Some(&request_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_query_error)?;
 
     Ok(LeadListsResponse {
         total_count: response.total_count,
@@ -476,7 +505,10 @@ pub fn lead_get_lists(
     })
 }
 
-pub fn lead_get_tags(api_key: &str, profile_url: String) -> Result<LeadTagsResponse, ApiError> {
+pub fn lead_get_tags(
+    api_key: &str,
+    profile_url: String,
+) -> Result<LeadTagsResponse, ResourceError> {
     let request_dto = LeadGetRequestDto { profile_url };
 
     let response: LeadTagsResponseDto = send_request_and_deserialize(
@@ -484,7 +516,8 @@ pub fn lead_get_tags(api_key: &str, profile_url: String) -> Result<LeadTagsRespo
         "/api/public/lead/GetTags",
         api_key,
         Some(&request_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_resource_error)?;
 
     Ok(LeadTagsResponse {
         tags: response.tags,
@@ -494,7 +527,7 @@ pub fn lead_get_tags(api_key: &str, profile_url: String) -> Result<LeadTagsRespo
 pub fn lead_replace_tags(
     api_key: &str,
     request: LeadReplaceTagsRequest,
-) -> Result<LeadReplaceTagsResponse, ApiError> {
+) -> Result<LeadReplaceTagsResponse, MutationError> {
     let request_dto = LeadReplaceTagsRequestDto {
         lead_profile_url: request.lead_profile_url,
         lead_linked_in_id: request.lead_linked_in_id,
@@ -507,7 +540,8 @@ pub fn lead_replace_tags(
         "/api/public/lead/ReplaceTags",
         api_key,
         Some(&request_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_mutation_error)?;
 
     Ok(LeadReplaceTagsResponse {
         new_assigned_tags: response.new_assigned_tags,
@@ -519,7 +553,7 @@ pub fn lead_replace_tags(
 pub fn inbox_get_conversations_v2(
     api_key: &str,
     request: InboxGetConversationsRequest,
-) -> Result<InboxConversationPage, ApiError> {
+) -> Result<InboxConversationPage, QueryError> {
     let request_dto = InboxGetConversationsRequestDto {
         filters: InboxFiltersDto {
             linked_in_account_ids: request.filters.linked_in_account_ids,
@@ -538,7 +572,8 @@ pub fn inbox_get_conversations_v2(
         "/api/public/inbox/GetConversationsV2",
         api_key,
         Some(&request_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_query_error)?;
 
     Ok(InboxConversationPage {
         total_count: response.total_count,
@@ -556,7 +591,10 @@ pub fn inbox_get_conversations_v2(
     })
 }
 
-pub fn inbox_send_message(api_key: &str, request: InboxSendMessageRequest) -> Result<(), ApiError> {
+pub fn inbox_send_message(
+    api_key: &str,
+    request: InboxSendMessageRequest,
+) -> Result<(), MutationError> {
     let request_dto = InboxSendMessageRequestDto {
         message: request.message,
         subject: request.subject,
@@ -570,6 +608,7 @@ pub fn inbox_send_message(api_key: &str, request: InboxSendMessageRequest) -> Re
         api_key,
         Some(&request_dto),
     )
+    .map_err(map_http_error_to_mutation_error)
 }
 
 // -------- LinkedIn Accounts --------
@@ -577,7 +616,7 @@ pub fn inbox_send_message(api_key: &str, request: InboxSendMessageRequest) -> Re
 pub fn li_account_get_all(
     api_key: &str,
     filter: LiAccountFilter,
-) -> Result<LiAccountPage, ApiError> {
+) -> Result<LiAccountPage, QueryError> {
     let filter_dto = LiAccountFilterDto {
         offset: filter.offset,
         limit: filter.limit,
@@ -589,7 +628,8 @@ pub fn li_account_get_all(
         "/api/public/li_account/GetAll",
         api_key,
         Some(&filter_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_query_error)?;
 
     Ok(LiAccountPage {
         total_count: response.total_count,
@@ -613,7 +653,10 @@ pub fn li_account_get_all(
 
 // -------- Webhooks --------
 
-pub fn webhooks_create(api_key: &str, request: CreateWebhookRequest) -> Result<Webhook, ApiError> {
+pub fn webhooks_create(
+    api_key: &str,
+    request: CreateWebhookRequest,
+) -> Result<Webhook, MutationError> {
     let request_dto = CreateWebhookRequestDto {
         webhook_name: request.webhook_name,
         webhook_url: request.webhook_url,
@@ -627,12 +670,13 @@ pub fn webhooks_create(api_key: &str, request: CreateWebhookRequest) -> Result<W
         "/api/public/webhooks/CreateWebhook",
         api_key,
         Some(&request_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_mutation_error)?;
 
     Ok(webhook_from_dto(response))
 }
 
-pub fn webhooks_get_by_id(api_key: &str, webhook_id: u64) -> Result<Webhook, ApiError> {
+pub fn webhooks_get_by_id(api_key: &str, webhook_id: u64) -> Result<Webhook, ResourceError> {
     let response: WebhookDto = send_request_and_deserialize(
         HttpMethod::Get,
         &format!(
@@ -641,12 +685,16 @@ pub fn webhooks_get_by_id(api_key: &str, webhook_id: u64) -> Result<Webhook, Api
         ),
         api_key,
         None::<&()>,
-    )?;
+    )
+    .map_err(map_http_error_to_resource_error)?;
 
     Ok(webhook_from_dto(response))
 }
 
-pub fn webhooks_get_all(api_key: &str, filter: GetWebhooksFilter) -> Result<WebhookPage, ApiError> {
+pub fn webhooks_get_all(
+    api_key: &str,
+    filter: GetWebhooksFilter,
+) -> Result<WebhookPage, QueryError> {
     let filter_dto = GetWebhooksFilterDto {
         offset: filter.offset,
         limit: filter.limit,
@@ -657,7 +705,8 @@ pub fn webhooks_get_all(api_key: &str, filter: GetWebhooksFilter) -> Result<Webh
         "/api/public/webhooks/GetAllWebhooks",
         api_key,
         Some(&filter_dto),
-    )?;
+    )
+    .map_err(map_http_error_to_query_error)?;
 
     Ok(WebhookPage {
         total_count: response.total_count,
@@ -665,7 +714,7 @@ pub fn webhooks_get_all(api_key: &str, filter: GetWebhooksFilter) -> Result<Webh
     })
 }
 
-pub fn webhooks_delete(api_key: &str, webhook_id: u64) -> Result<(), ApiError> {
+pub fn webhooks_delete(api_key: &str, webhook_id: u64) -> Result<(), MutationError> {
     send_request_without_response(
         HttpMethod::Delete,
         &format!(
@@ -675,6 +724,7 @@ pub fn webhooks_delete(api_key: &str, webhook_id: u64) -> Result<(), ApiError> {
         api_key,
         None::<&()>,
     )
+    .map_err(map_http_error_to_mutation_error)
 }
 
 #[cfg(test)]
