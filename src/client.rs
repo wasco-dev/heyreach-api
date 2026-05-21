@@ -1,9 +1,5 @@
 use crate::bindings::exports::wasco_dev::heyreach_api::heyreach_api::*;
-use crate::http::{
-    map_http_error_to_auth_error, map_http_error_to_mutation_error, map_http_error_to_query_error,
-    map_http_error_to_resource_error, send_request_and_deserialize, send_request_without_response,
-    HttpMethod,
-};
+use crate::http::{send_request_and_deserialize, send_request_without_response, HttpMethod};
 use crate::models::*;
 
 // -------- Helper functions for conversion --------
@@ -173,13 +169,12 @@ fn webhook_from_dto(webhook: WebhookDto) -> Webhook {
 // -------- Auth --------
 
 pub fn check_api_key(api_key: &str) -> Result<(), AuthError> {
-    send_request_without_response(
+    Ok(send_request_without_response(
         HttpMethod::Get,
         "/api/public/auth/CheckApiKey",
         api_key,
         None::<&()>,
-    )
-    .map_err(map_http_error_to_auth_error)
+    )?)
 }
 
 // -------- Campaigns --------
@@ -205,8 +200,7 @@ pub fn campaigns_get_all(
         "/api/public/campaign/GetAll",
         api_key,
         Some(&filter_dto),
-    )
-    .map_err(map_http_error_to_query_error)?;
+    )?;
 
     Ok(CampaignPage {
         total_count: response.total_count,
@@ -227,30 +221,27 @@ pub fn campaigns_get_by_id(
         &format!("/api/public/campaign/GetById?campaignId={}", campaign_id),
         api_key,
         None::<&()>,
-    )
-    .map_err(map_http_error_to_resource_error)?;
+    )?;
 
     Ok(campaign_summary_from_dto(response))
 }
 
 pub fn campaigns_resume(api_key: &str, campaign_id: u64) -> Result<(), MutationError> {
-    send_request_without_response(
+    Ok(send_request_without_response(
         HttpMethod::Post,
         &format!("/api/public/campaign/Resume?campaignId={}", campaign_id),
         api_key,
         None::<&()>,
-    )
-    .map_err(map_http_error_to_mutation_error)
+    )?)
 }
 
 pub fn campaigns_pause(api_key: &str, campaign_id: u64) -> Result<(), MutationError> {
-    send_request_without_response(
+    Ok(send_request_without_response(
         HttpMethod::Post,
         &format!("/api/public/campaign/Pause?campaignId={}", campaign_id),
         api_key,
         None::<&()>,
-    )
-    .map_err(map_http_error_to_mutation_error)
+    )?)
 }
 
 pub fn campaigns_add_leads(
@@ -269,13 +260,12 @@ pub fn campaigns_add_leads(
             .collect(),
     };
 
-    send_request_and_deserialize(
+    Ok(send_request_and_deserialize(
         HttpMethod::Post,
         "/api/public/campaign/AddLeadsToCampaign",
         api_key,
         Some(&payload_dto),
-    )
-    .map_err(map_http_error_to_mutation_error)
+    )?)
 }
 
 pub fn campaigns_add_leads_v2(
@@ -299,8 +289,7 @@ pub fn campaigns_add_leads_v2(
         "/api/public/campaign/AddLeadsToCampaignV2",
         api_key,
         Some(&payload_dto),
-    )
-    .map_err(map_http_error_to_mutation_error)?;
+    )?;
 
     Ok(CampaignAddLeadsV2Result {
         added_leads_count: response.added_leads_count,
@@ -323,8 +312,7 @@ pub fn lists_get_all(api_key: &str, filter: ListGetAllFilter) -> Result<ListPage
         "/api/public/list/GetAll",
         api_key,
         Some(&filter_dto),
-    )
-    .map_err(map_http_error_to_query_error)?;
+    )?;
 
     Ok(ListPage {
         total_count: response.total_count,
@@ -342,8 +330,7 @@ pub fn lists_get_by_id(api_key: &str, list_id: u64) -> Result<ListSummary, Resou
         &format!("/api/public/list/GetById?listId={}", list_id),
         api_key,
         None::<&()>,
-    )
-    .map_err(map_http_error_to_resource_error)?;
+    )?;
 
     Ok(list_summary_from_dto(response))
 }
@@ -367,8 +354,7 @@ pub fn lists_get_leads(
         "/api/public/list/GetLeadsFromList",
         api_key,
         Some(&request_dto),
-    )
-    .map_err(map_http_error_to_query_error)?;
+    )?;
 
     Ok(ListLeadsPage {
         total_count: response.total_count,
@@ -382,13 +368,12 @@ pub fn lists_add_leads(api_key: &str, list_id: u64, leads: Vec<Lead>) -> Result<
         leads: leads.into_iter().map(lead_to_dto).collect(),
     };
 
-    send_request_without_response(
+    Ok(send_request_without_response(
         HttpMethod::Post,
         "/api/public/list/AddLeadsToList",
         api_key,
         Some(&request_dto),
-    )
-    .map_err(map_http_error_to_mutation_error)
+    )?)
 }
 
 pub fn lists_add_leads_v2(
@@ -406,8 +391,7 @@ pub fn lists_add_leads_v2(
         "/api/public/list/AddLeadsToListV2",
         api_key,
         Some(&request_dto),
-    )
-    .map_err(map_http_error_to_mutation_error)?;
+    )?;
 
     Ok(CampaignAddLeadsV2Result {
         added_leads_count: response.added_leads_count,
@@ -425,13 +409,12 @@ pub fn lists_delete_leads(
         lead_member_ids: request.lead_member_ids,
     };
 
-    send_request_without_response(
+    Ok(send_request_without_response(
         HttpMethod::Delete,
         "/api/public/list/DeleteLeadsFromList",
         api_key,
         Some(&request_dto),
-    )
-    .map_err(map_http_error_to_mutation_error)
+    )?)
 }
 
 pub fn lists_delete_leads_by_profile_url(
@@ -448,8 +431,7 @@ pub fn lists_delete_leads_by_profile_url(
         "/api/public/list/DeleteLeadsFromListByProfileUrl",
         api_key,
         Some(&request_dto),
-    )
-    .map_err(map_http_error_to_mutation_error)?;
+    )?;
 
     Ok(ListLeadDeleteByProfileUrlResponse {
         not_found_in_list: response.not_found_in_list,
@@ -466,8 +448,7 @@ pub fn lead_get(api_key: &str, profile_url: String) -> Result<Lead, ResourceErro
         "/api/public/lead/GetLead",
         api_key,
         Some(&request_dto),
-    )
-    .map_err(map_http_error_to_resource_error)?;
+    )?;
 
     Ok(lead_from_dto(response))
 }
@@ -489,8 +470,7 @@ pub fn lead_get_lists(
         "/api/public/list/GetListsForLead",
         api_key,
         Some(&request_dto),
-    )
-    .map_err(map_http_error_to_query_error)?;
+    )?;
 
     Ok(LeadListsResponse {
         total_count: response.total_count,
@@ -516,8 +496,7 @@ pub fn lead_get_tags(
         "/api/public/lead/GetTags",
         api_key,
         Some(&request_dto),
-    )
-    .map_err(map_http_error_to_resource_error)?;
+    )?;
 
     Ok(LeadTagsResponse {
         tags: response.tags,
@@ -540,8 +519,7 @@ pub fn lead_replace_tags(
         "/api/public/lead/ReplaceTags",
         api_key,
         Some(&request_dto),
-    )
-    .map_err(map_http_error_to_mutation_error)?;
+    )?;
 
     Ok(LeadReplaceTagsResponse {
         new_assigned_tags: response.new_assigned_tags,
@@ -572,8 +550,7 @@ pub fn inbox_get_conversations_v2(
         "/api/public/inbox/GetConversationsV2",
         api_key,
         Some(&request_dto),
-    )
-    .map_err(map_http_error_to_query_error)?;
+    )?;
 
     Ok(InboxConversationPage {
         total_count: response.total_count,
@@ -602,13 +579,12 @@ pub fn inbox_send_message(
         linked_in_account_id: request.linked_in_account_id,
     };
 
-    send_request_without_response(
+    Ok(send_request_without_response(
         HttpMethod::Post,
         "/api/public/inbox/SendMessage",
         api_key,
         Some(&request_dto),
-    )
-    .map_err(map_http_error_to_mutation_error)
+    )?)
 }
 
 // -------- LinkedIn Accounts --------
@@ -628,8 +604,7 @@ pub fn li_account_get_all(
         "/api/public/li_account/GetAll",
         api_key,
         Some(&filter_dto),
-    )
-    .map_err(map_http_error_to_query_error)?;
+    )?;
 
     Ok(LiAccountPage {
         total_count: response.total_count,
@@ -670,8 +645,7 @@ pub fn webhooks_create(
         "/api/public/webhooks/CreateWebhook",
         api_key,
         Some(&request_dto),
-    )
-    .map_err(map_http_error_to_mutation_error)?;
+    )?;
 
     Ok(webhook_from_dto(response))
 }
@@ -685,8 +659,7 @@ pub fn webhooks_get_by_id(api_key: &str, webhook_id: u64) -> Result<Webhook, Res
         ),
         api_key,
         None::<&()>,
-    )
-    .map_err(map_http_error_to_resource_error)?;
+    )?;
 
     Ok(webhook_from_dto(response))
 }
@@ -705,8 +678,7 @@ pub fn webhooks_get_all(
         "/api/public/webhooks/GetAllWebhooks",
         api_key,
         Some(&filter_dto),
-    )
-    .map_err(map_http_error_to_query_error)?;
+    )?;
 
     Ok(WebhookPage {
         total_count: response.total_count,
@@ -715,7 +687,7 @@ pub fn webhooks_get_all(
 }
 
 pub fn webhooks_delete(api_key: &str, webhook_id: u64) -> Result<(), MutationError> {
-    send_request_without_response(
+    Ok(send_request_without_response(
         HttpMethod::Delete,
         &format!(
             "/api/public/webhooks/DeleteWebhook?webhookId={}",
@@ -723,8 +695,7 @@ pub fn webhooks_delete(api_key: &str, webhook_id: u64) -> Result<(), MutationErr
         ),
         api_key,
         None::<&()>,
-    )
-    .map_err(map_http_error_to_mutation_error)
+    )?)
 }
 
 #[cfg(test)]

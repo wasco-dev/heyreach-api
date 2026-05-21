@@ -35,41 +35,49 @@ impl HttpError {
     }
 }
 
-pub fn map_http_error_to_auth_error(error: HttpError) -> AuthError {
-    match error {
-        HttpError::Unauthorized(message) => AuthError::Unauthorized(message),
-        HttpError::TooManyRequests(message) => AuthError::TooManyRequests(message),
-        other => AuthError::Unknown(other.message()),
+impl From<HttpError> for AuthError {
+    fn from(error: HttpError) -> Self {
+        match error {
+            HttpError::Unauthorized(message) => AuthError::Unauthorized(message),
+            HttpError::TooManyRequests(message) => AuthError::TooManyRequests(message),
+            other => AuthError::Unknown(other.message()),
+        }
     }
 }
 
-pub fn map_http_error_to_query_error(error: HttpError) -> QueryError {
-    match error {
-        HttpError::BadRequest(message) => QueryError::BadRequest(message),
-        HttpError::Unauthorized(message) => QueryError::Unauthorized(message),
-        HttpError::Validation(message) => QueryError::Validation(message),
-        HttpError::TooManyRequests(message) => QueryError::TooManyRequests(message),
-        other => QueryError::Unknown(other.message()),
+impl From<HttpError> for QueryError {
+    fn from(error: HttpError) -> Self {
+        match error {
+            HttpError::BadRequest(message) => QueryError::BadRequest(message),
+            HttpError::Unauthorized(message) => QueryError::Unauthorized(message),
+            HttpError::Validation(message) => QueryError::Validation(message),
+            HttpError::TooManyRequests(message) => QueryError::TooManyRequests(message),
+            other => QueryError::Unknown(other.message()),
+        }
     }
 }
 
-pub fn map_http_error_to_resource_error(error: HttpError) -> ResourceError {
-    match error {
-        HttpError::Unauthorized(message) => ResourceError::Unauthorized(message),
-        HttpError::NotFound(message) => ResourceError::NotFound(message),
-        HttpError::TooManyRequests(message) => ResourceError::TooManyRequests(message),
-        other => ResourceError::Unknown(other.message()),
+impl From<HttpError> for ResourceError {
+    fn from(error: HttpError) -> Self {
+        match error {
+            HttpError::Unauthorized(message) => ResourceError::Unauthorized(message),
+            HttpError::NotFound(message) => ResourceError::NotFound(message),
+            HttpError::TooManyRequests(message) => ResourceError::TooManyRequests(message),
+            other => ResourceError::Unknown(other.message()),
+        }
     }
 }
 
-pub fn map_http_error_to_mutation_error(error: HttpError) -> MutationError {
-    match error {
-        HttpError::BadRequest(message) => MutationError::BadRequest(message),
-        HttpError::Unauthorized(message) => MutationError::Unauthorized(message),
-        HttpError::NotFound(message) => MutationError::NotFound(message),
-        HttpError::Validation(message) => MutationError::Validation(message),
-        HttpError::TooManyRequests(message) => MutationError::TooManyRequests(message),
-        other => MutationError::Unknown(other.message()),
+impl From<HttpError> for MutationError {
+    fn from(error: HttpError) -> Self {
+        match error {
+            HttpError::BadRequest(message) => MutationError::BadRequest(message),
+            HttpError::Unauthorized(message) => MutationError::Unauthorized(message),
+            HttpError::NotFound(message) => MutationError::NotFound(message),
+            HttpError::Validation(message) => MutationError::Validation(message),
+            HttpError::TooManyRequests(message) => MutationError::TooManyRequests(message),
+            other => MutationError::Unknown(other.message()),
+        }
     }
 }
 
@@ -457,27 +465,27 @@ mod tests {
         assert_eq!(message, "HTTP 400");
     }
 
-    // -------- map_http_error_to_auth_error --------
+    // -------- From<HttpError> for AuthError --------
 
     #[test]
-    fn test_map_http_error_to_auth_error_unauthorized() {
+    fn test_http_error_unauthorized_converts_to_auth_error() {
         // Arrange
         let error = HttpError::Unauthorized("bad key".to_string());
 
         // Act
-        let auth_error = map_http_error_to_auth_error(error);
+        let auth_error: AuthError = error.into();
 
         // Assert
         assert!(matches!(auth_error, AuthError::Unauthorized(message) if message == "bad key"));
     }
 
     #[test]
-    fn test_map_http_error_to_auth_error_too_many_requests() {
+    fn test_http_error_too_many_requests_converts_to_auth_error() {
         // Arrange
         let error = HttpError::TooManyRequests("slow down".to_string());
 
         // Act
-        let auth_error = map_http_error_to_auth_error(error);
+        let auth_error: AuthError = error.into();
 
         // Assert
         assert!(
@@ -486,62 +494,62 @@ mod tests {
     }
 
     #[test]
-    fn test_map_http_error_to_auth_error_unknown_fallthrough() {
+    fn test_http_error_unknown_fallthrough_converts_to_auth_unknown() {
         // Arrange
         let error = HttpError::NotFound("not here".to_string());
 
         // Act
-        let auth_error = map_http_error_to_auth_error(error);
+        let auth_error: AuthError = error.into();
 
         // Assert
         assert!(matches!(auth_error, AuthError::Unknown(message) if message == "not here"));
     }
 
-    // -------- map_http_error_to_query_error --------
+    // -------- From<HttpError> for QueryError --------
 
     #[test]
-    fn test_map_http_error_to_query_error_bad_request() {
+    fn test_http_error_bad_request_converts_to_query_error() {
         // Arrange
         let error = HttpError::BadRequest("bad input".to_string());
 
         // Act
-        let query_error = map_http_error_to_query_error(error);
+        let query_error: QueryError = error.into();
 
         // Assert
         assert!(matches!(query_error, QueryError::BadRequest(message) if message == "bad input"));
     }
 
     #[test]
-    fn test_map_http_error_to_query_error_unauthorized() {
+    fn test_http_error_unauthorized_converts_to_query_error() {
         // Arrange
         let error = HttpError::Unauthorized("no auth".to_string());
 
         // Act
-        let query_error = map_http_error_to_query_error(error);
+        let query_error: QueryError = error.into();
 
         // Assert
         assert!(matches!(query_error, QueryError::Unauthorized(message) if message == "no auth"));
     }
 
     #[test]
-    fn test_map_http_error_to_query_error_validation() {
+    fn test_http_error_validation_converts_to_query_error() {
         // Arrange
         let error = HttpError::Validation("bad field".to_string());
 
         // Act
-        let query_error = map_http_error_to_query_error(error);
+        let query_error: QueryError = error.into();
 
         // Assert
         assert!(matches!(query_error, QueryError::Validation(message) if message == "bad field"));
     }
 
     #[test]
-    fn test_map_http_error_to_query_error_too_many_requests() {
+    fn test_http_error_too_many_requests_converts_to_query_error() {
         // Arrange
         let error = HttpError::TooManyRequests("rate limited".to_string());
 
         // Act
-        let query_error = map_http_error_to_query_error(error);
+        let query_error: QueryError = error.into();
 
         // Assert
         assert!(
@@ -550,26 +558,26 @@ mod tests {
     }
 
     #[test]
-    fn test_map_http_error_to_query_error_unknown_fallthrough() {
+    fn test_http_error_unknown_fallthrough_converts_to_query_unknown() {
         // Arrange
         let error = HttpError::NotFound("not here".to_string());
 
         // Act
-        let query_error = map_http_error_to_query_error(error);
+        let query_error: QueryError = error.into();
 
         // Assert
         assert!(matches!(query_error, QueryError::Unknown(message) if message == "not here"));
     }
 
-    // -------- map_http_error_to_resource_error --------
+    // -------- From<HttpError> for ResourceError --------
 
     #[test]
-    fn test_map_http_error_to_resource_error_unauthorized() {
+    fn test_http_error_unauthorized_converts_to_resource_error() {
         // Arrange
         let error = HttpError::Unauthorized("no auth".to_string());
 
         // Act
-        let resource_error = map_http_error_to_resource_error(error);
+        let resource_error: ResourceError = error.into();
 
         // Assert
         assert!(
@@ -578,24 +586,24 @@ mod tests {
     }
 
     #[test]
-    fn test_map_http_error_to_resource_error_not_found() {
+    fn test_http_error_not_found_converts_to_resource_error() {
         // Arrange
         let error = HttpError::NotFound("missing".to_string());
 
         // Act
-        let resource_error = map_http_error_to_resource_error(error);
+        let resource_error: ResourceError = error.into();
 
         // Assert
         assert!(matches!(resource_error, ResourceError::NotFound(message) if message == "missing"));
     }
 
     #[test]
-    fn test_map_http_error_to_resource_error_too_many_requests() {
+    fn test_http_error_too_many_requests_converts_to_resource_error() {
         // Arrange
         let error = HttpError::TooManyRequests("rate limited".to_string());
 
         // Act
-        let resource_error = map_http_error_to_resource_error(error);
+        let resource_error: ResourceError = error.into();
 
         // Assert
         assert!(
@@ -604,12 +612,12 @@ mod tests {
     }
 
     #[test]
-    fn test_map_http_error_to_resource_error_unknown_fallthrough() {
+    fn test_http_error_unknown_fallthrough_converts_to_resource_unknown() {
         // Arrange
         let error = HttpError::BadRequest("bad input".to_string());
 
         // Act
-        let resource_error = map_http_error_to_resource_error(error);
+        let resource_error: ResourceError = error.into();
 
         // Assert
         assert!(
@@ -617,15 +625,15 @@ mod tests {
         );
     }
 
-    // -------- map_http_error_to_mutation_error --------
+    // -------- From<HttpError> for MutationError --------
 
     #[test]
-    fn test_map_http_error_to_mutation_error_bad_request() {
+    fn test_http_error_bad_request_converts_to_mutation_error() {
         // Arrange
         let error = HttpError::BadRequest("bad input".to_string());
 
         // Act
-        let mutation_error = map_http_error_to_mutation_error(error);
+        let mutation_error: MutationError = error.into();
 
         // Assert
         assert!(
@@ -634,12 +642,12 @@ mod tests {
     }
 
     #[test]
-    fn test_map_http_error_to_mutation_error_unauthorized() {
+    fn test_http_error_unauthorized_converts_to_mutation_error() {
         // Arrange
         let error = HttpError::Unauthorized("no auth".to_string());
 
         // Act
-        let mutation_error = map_http_error_to_mutation_error(error);
+        let mutation_error: MutationError = error.into();
 
         // Assert
         assert!(
@@ -648,24 +656,24 @@ mod tests {
     }
 
     #[test]
-    fn test_map_http_error_to_mutation_error_not_found() {
+    fn test_http_error_not_found_converts_to_mutation_error() {
         // Arrange
         let error = HttpError::NotFound("missing".to_string());
 
         // Act
-        let mutation_error = map_http_error_to_mutation_error(error);
+        let mutation_error: MutationError = error.into();
 
         // Assert
         assert!(matches!(mutation_error, MutationError::NotFound(message) if message == "missing"));
     }
 
     #[test]
-    fn test_map_http_error_to_mutation_error_validation() {
+    fn test_http_error_validation_converts_to_mutation_error() {
         // Arrange
         let error = HttpError::Validation("bad field".to_string());
 
         // Act
-        let mutation_error = map_http_error_to_mutation_error(error);
+        let mutation_error: MutationError = error.into();
 
         // Assert
         assert!(
@@ -674,12 +682,12 @@ mod tests {
     }
 
     #[test]
-    fn test_map_http_error_to_mutation_error_too_many_requests() {
+    fn test_http_error_too_many_requests_converts_to_mutation_error() {
         // Arrange
         let error = HttpError::TooManyRequests("rate limited".to_string());
 
         // Act
-        let mutation_error = map_http_error_to_mutation_error(error);
+        let mutation_error: MutationError = error.into();
 
         // Assert
         assert!(
@@ -688,12 +696,12 @@ mod tests {
     }
 
     #[test]
-    fn test_map_http_error_to_mutation_error_unknown_fallthrough() {
+    fn test_http_error_unknown_fallthrough_converts_to_mutation_unknown() {
         // Arrange
         let error = HttpError::Unknown("something else".to_string());
 
         // Act
-        let mutation_error = map_http_error_to_mutation_error(error);
+        let mutation_error: MutationError = error.into();
 
         // Assert
         assert!(
