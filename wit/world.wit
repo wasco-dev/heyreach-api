@@ -1,4 +1,4 @@
-package wasco-dev:heyreach-api@0.1.1;
+package wasco-dev:heyreach-api@0.2.0;
 
 /// ------------------------
 /// Main client interface
@@ -6,21 +6,38 @@ package wasco-dev:heyreach-api@0.1.1;
 
 interface heyreach-api {
 
-    /// Generic error mapping the common HTTP errors from the HeyReach API.
-    enum api-error-code {
-      unauthorized,
-      not-found,
-      too-many-requests,
-      bad-request,
-      validation,
-      rate-limited,
-      unknown,
+    /// Error for auth-only endpoints (401, 429).
+    variant auth-error {
+        unauthorized(string),
+        too-many-requests(string),
+        unknown(string),
     }
 
-    record api-error {
-      code: api-error-code,
-      /// Human-readable error message (can be taken from `detail` / `errorMessage`).
-      message: string,
+    /// Error for query/listing endpoints (400, 401, 422, 429).
+    variant query-error {
+        bad-request(string),
+        unauthorized(string),
+        validation(string),
+        too-many-requests(string),
+        unknown(string),
+    }
+
+    /// Error for single-resource fetch endpoints (401, 404, 429).
+    variant resource-error {
+        unauthorized(string),
+        not-found(string),
+        too-many-requests(string),
+        unknown(string),
+    }
+
+    /// Error for create/update/delete endpoints (400, 401, 404, 422, 429).
+    variant mutation-error {
+        bad-request(string),
+        unauthorized(string),
+        not-found(string),
+        validation(string),
+        too-many-requests(string),
+        unknown(string),
     }
 
     /// Pagination info used in many responses.
@@ -331,7 +348,7 @@ interface heyreach-api {
   // -------- Auth --------
 
   /// GET /api/public/auth/CheckApiKey
-  check-api-key: func(api-key: string) -> result<_, api-error>;
+  check-api-key: func(api-key: string) -> result<_, auth-error>;
 
   // -------- Campaigns --------
 
@@ -339,25 +356,25 @@ interface heyreach-api {
   campaigns-get-all: func(
     api-key: string,
     filter: campaign-filter
-  ) -> result<campaign-page, api-error>;
+  ) -> result<campaign-page, query-error>;
 
   /// GET /api/public/campaign/GetById
   campaigns-get-by-id: func(
     api-key: string,
     campaign-id: u64
-  ) -> result<campaign-summary, api-error>;
+  ) -> result<campaign-summary, resource-error>;
 
   /// POST /api/public/campaign/Resume
   campaigns-resume: func(
     api-key: string,
     campaign-id: u64
-  ) -> result<_, api-error>;
+  ) -> result<_, mutation-error>;
 
   /// POST /api/public/campaign/Pause
   campaigns-pause: func(
     api-key: string,
     campaign-id: u64
-  ) -> result<_, api-error>;
+  ) -> result<_, mutation-error>;
 
   /// POST /api/public/campaign/AddLeadsToCampaign
   ///
@@ -365,13 +382,13 @@ interface heyreach-api {
   campaigns-add-leads: func(
     api-key: string,
     payload: campaign-add-leads-request
-  ) -> result<u32, api-error>;
+  ) -> result<u32, mutation-error>;
 
   /// POST /api/public/campaign/AddLeadsToCampaignV2
   campaigns-add-leads-v2: func(
     api-key: string,
     payload: campaign-add-leads-request
-  ) -> result<campaign-add-leads-v2-result, api-error>;
+  ) -> result<campaign-add-leads-v2-result, mutation-error>;
 
   // -------- Lists --------
 
@@ -379,13 +396,13 @@ interface heyreach-api {
   lists-get-all: func(
     api-key: string,
     filter: list-get-all-filter
-  ) -> result<list-page, api-error>;
+  ) -> result<list-page, query-error>;
 
   /// GET /api/public/list/GetById
   lists-get-by-id: func(
     api-key: string,
     list-id: u64
-  ) -> result<list-summary, api-error>;
+  ) -> result<list-summary, resource-error>;
 
   /// POST /api/public/list/GetLeadsFromList
   lists-get-leads: func(
@@ -394,33 +411,33 @@ interface heyreach-api {
     offset: u32,
     limit: u32,
     keyword: option<string>
-  ) -> result<list-leads-page, api-error>;
+  ) -> result<list-leads-page, query-error>;
 
   /// POST /api/public/list/AddLeadsToList
   lists-add-leads: func(
     api-key: string,
     list-id: u64,
     leads: list<lead>
-  ) -> result<_, api-error>;
+  ) -> result<_, mutation-error>;
 
   /// POST /api/public/list/AddLeadsToListV2
   lists-add-leads-v2: func(
     api-key: string,
     list-id: u64,
     leads: list<lead>
-  ) -> result<campaign-add-leads-v2-result, api-error>;
+  ) -> result<campaign-add-leads-v2-result, mutation-error>;
 
   /// DELETE /api/public/list/DeleteLeadsFromList
   lists-delete-leads: func(
     api-key: string,
     request: list-lead-delete-request
-  ) -> result<_, api-error>;
+  ) -> result<_, mutation-error>;
 
   /// DELETE /api/public/list/DeleteLeadsFromListByProfileUrl
   lists-delete-leads-by-profile-url: func(
     api-key: string,
     request: list-lead-delete-by-profile-url-request
-  ) -> result<list-lead-delete-by-profile-url-response, api-error>;
+  ) -> result<list-lead-delete-by-profile-url-response, mutation-error>;
 
   // -------- Lead & Tags --------
 
@@ -428,25 +445,25 @@ interface heyreach-api {
   lead-get: func(
     api-key: string,
     profile-url: string
-  ) -> result<lead, api-error>;
+  ) -> result<lead, resource-error>;
 
   /// POST /api/public/list/GetListsForLead
   lead-get-lists: func(
     api-key: string,
     request: lead-lists-request
-  ) -> result<lead-lists-response, api-error>;
+  ) -> result<lead-lists-response, query-error>;
 
   /// POST /api/public/lead/GetTags
   lead-get-tags: func(
     api-key: string,
     profile-url: string
-  ) -> result<lead-tags-response, api-error>;
+  ) -> result<lead-tags-response, resource-error>;
 
   /// POST /api/public/lead/ReplaceTags
   lead-replace-tags: func(
     api-key: string,
     request: lead-replace-tags-request
-  ) -> result<lead-replace-tags-response, api-error>;
+  ) -> result<lead-replace-tags-response, mutation-error>;
 
   // -------- Inbox --------
 
@@ -454,13 +471,13 @@ interface heyreach-api {
   inbox-get-conversations-v2: func(
     api-key: string,
     request: inbox-get-conversations-request
-  ) -> result<inbox-conversation-page, api-error>;
+  ) -> result<inbox-conversation-page, query-error>;
 
   /// POST /api/public/inbox/SendMessage
   inbox-send-message: func(
     api-key: string,
     request: inbox-send-message-request
-  ) -> result<_, api-error>;
+  ) -> result<_, mutation-error>;
 
   // -------- LinkedIn Accounts --------
 
@@ -468,7 +485,7 @@ interface heyreach-api {
   li-account-get-all: func(
     api-key: string,
     filter: li-account-filter
-  ) -> result<li-account-page, api-error>;
+  ) -> result<li-account-page, query-error>;
 
   // -------- Webhooks --------
 
@@ -476,25 +493,25 @@ interface heyreach-api {
   webhooks-create: func(
     api-key: string,
     request: create-webhook-request
-  ) -> result<webhook, api-error>;
+  ) -> result<webhook, mutation-error>;
 
   /// GET /api/public/webhooks/GetWebhookById
   webhooks-get-by-id: func(
     api-key: string,
     webhook-id: u64
-  ) -> result<webhook, api-error>;
+  ) -> result<webhook, resource-error>;
 
   /// POST /api/public/webhooks/GetAllWebhooks
   webhooks-get-all: func(
     api-key: string,
     filter: get-webhooks-filter
-  ) -> result<webhook-page, api-error>;
+  ) -> result<webhook-page, query-error>;
 
   /// DELETE /api/public/webhooks/DeleteWebhook
   webhooks-delete: func(
     api-key: string,
     webhook-id: u64
-  ) -> result<_, api-error>;
+  ) -> result<_, mutation-error>;
 }
 
 /// World exporting the single client interface.
